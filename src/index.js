@@ -1,5 +1,6 @@
 
 import walk from 'react-tree-walker'
+import { visit, BREAK } from 'graphql'
 
 /**
  * Asynchronously walk a React component tree to extract
@@ -26,4 +27,23 @@ export const getFragmentsFromTree = async (tree, dive = () => true) => {
   })
 
   return fragments
+}
+
+/**
+ * Given an AST, extract the first available fragment name.
+ *
+ * @param {Object} ast GraphQL AST.
+ * @return {String} the found fragment name or null otherwise.
+ */
+export const getFragmentName = ast => {
+  let fragmentName = null
+
+  visit(ast, {
+    FragmentDefinition: ({ name: { value } }) => {
+      fragmentName = value
+      return BREAK
+    }
+  })
+
+  return fragmentName
 }
