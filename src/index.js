@@ -71,3 +71,34 @@ export const getRequestedFragmentNames = ast => {
   return fragmentNames
 }
 
+/**
+ * Asynchronously walk a React component tree to extract
+ * any encountered fragments present on the given AST.
+ *
+ * @param {Object} tree A React component tree.
+ * @param {Object} ast GraphQL AST.
+ *
+ * @return {Array} extracted fragments.
+ */
+export const getQueryFragmentsFromTree = (tree, ast) => {
+  let requestedFragments = getRequestedFragmentNames(ast)
+
+  return getFragmentsFromTree(tree, fragment => {
+    // When a fragment is found, eiher:
+    // 1. it was requested by the AST, so not only should we extract this
+    //    fragment, but look for any nested fragments inside it.
+    // 2. it was not requested by the AST, meaning we should skip it altogether.
+    if (fragment) {
+      if (requestedFragments.indexOf(getFragmentName(fragment)) !== -1) {
+        requestedFragments = requestedFragments.concat(getRequestedFragmentNames(fragment))
+        return true
+      }
+      else {
+        return false
+      }
+    }
+
+    // When no fragment found, just keep digging.
+    return true
+  })
+}
