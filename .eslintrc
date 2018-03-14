@@ -1,0 +1,6 @@
+{
+  extends: [ "taller" ],
+  globals: {
+    jest: true
+  }
+}
