@@ -21,9 +21,11 @@ export const getFragmentsFromTree = async (tree, dive = () => true) => {
       ? element.type.fragment
       : null
 
-    if (fragment) fragments.push(fragment)
+    const diving = dive(fragment, element, ...args)
 
-    return dive(fragment, element, ...args)
+    if (fragment && diving) fragments.push(fragment)
+
+    return diving
   })
 
   return fragments

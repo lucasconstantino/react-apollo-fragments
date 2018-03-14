@@ -103,7 +103,7 @@ describe('getFragmentsFromTree', () => {
   })
 
   describe('dive control', () => {
-    it('should NOT be possible to avoid first-level extraction', async () => {
+    it('should be possible to avoid first-level extraction', async () => {
       const Component = getFragmentComponent()
       const tree = (
         <Component />
@@ -112,8 +112,7 @@ describe('getFragmentsFromTree', () => {
       const dive = () => false
       const fragments = await getFragmentsFromTree(tree, dive)
 
-      expect(fragments.length).toBe(1)
-      expect(fragments[0].loc.source.body).toContain('fragment Fragment on Type')
+      expect(fragments.length).toBe(0)
     })
 
     it('should be possible to avoid inner-level extraction', async () => {
@@ -136,7 +135,7 @@ describe('getFragmentsFromTree', () => {
         <Component />
       )
 
-      const dive = jest.fn()
+      const dive = jest.fn(() => true)
       const fragments = await getFragmentsFromTree(tree, dive)
 
       expect(dive.mock.calls[0][0]).toBe(fragments[0])
