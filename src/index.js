@@ -47,3 +47,25 @@ export const getFragmentName = ast => {
 
   return fragmentName
 }
+
+/**
+ * Given an AST, extract the name of all requested fragments.
+ *
+ * @param {Object} ast GraphQL AST.
+ * @return {[String]} an array with the name of all used fragments.
+ */
+export const getRequestedFragmentNames = ast => {
+  const fragmentNames = []
+
+  visit(ast, {
+    // FragmentSpread:
+    Name: ({ value: fragment }, key, parent, path, ancestors) => {
+      if (parent.kind === 'FragmentSpread') {
+        fragmentNames.push(fragment)
+      }
+    }
+  })
+
+  return fragmentNames
+}
+
