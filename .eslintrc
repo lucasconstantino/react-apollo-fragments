@@ -1,5 +1,5 @@
 {
-  extends: [ "taller" ],
+  extends: ["taller/react"],
   globals: {
     jest: true
   }
