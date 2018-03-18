@@ -15,17 +15,19 @@ import { visit, BREAK } from 'graphql'
 export const getFragmentsFromTree = async (tree, dive = () => true) => {
   const fragments = []
 
-  await walk(tree, (element, ...args) => {
-    const fragment = element.type && element.type.fragment
-      ? element.type.fragment
-      : null
+  if (tree) {
+    await walk(tree, (element, ...args) => {
+      const fragment = element.type && element.type.fragment
+        ? element.type.fragment
+        : null
 
-    const diving = dive(fragment, element, ...args)
+      const diving = dive(fragment, element, ...args)
 
-    if (fragment && diving) fragments.push(fragment)
+      if (fragment && diving) fragments.push(fragment)
 
-    return diving
-  })
+      return diving
+    })
+  }
 
   return fragments
 }
