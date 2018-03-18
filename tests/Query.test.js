@@ -109,19 +109,30 @@ TypeOneFragmentComponent.fragment = typeOneFragment
 const TypeTwoFragmentComponent = props => <div { ...props } />
 TypeTwoFragmentComponent.fragment = typeTwoFragment
 
-const sleep = (ms = 1) => new Promise(resolve => setTimeout(resolve, ms))
+// const sleep = (ms = 1) => new Promise(resolve => setTimeout(resolve, ms))
 
-const update = async () => {
-  // First wait, for the defragmenting process.
-  await sleep()
+/**
+ * @TODO: This is a very problematic code that intends to ensure any
+ * query was resolved. We tried jest timer's control and promises, but
+ * nothing did really work. Still, sometimes the test fails.
+ */
+const update = (...mocks) => {
+  let interval
 
-  // Second await, for the react-apollo Query loading.
-  await sleep()
+  return new Promise(resolve => {
+    interval = setInterval(() => {
+      const loaded = mocks.every(
+        ({ mock: { calls } }) => calls.some(
+          ([{ loading }]) => !loading
+        )
+      )
 
-  // Third, fourth, fifth, and sixth await, for nested queries.
-  // @TODO: this techniche it not trustable.
-  await sleep()
-  await sleep()
+      if (loaded) {
+        clearInterval(interval)
+        resolve()
+      }
+    }, 10)
+  }).catch(() => clearInterval(interval))
 }
 
 describe('Query', () => {
@@ -150,9 +161,8 @@ describe('Query', () => {
     expect(component.mock.calls[0][0].loading).toBe(true)
     expect(component.mock.calls[0][0].data.field).toBeUndefined()
 
-    await update()
+    await update(component)
 
-    expect(component.mock.calls[3][0].loading).toBe(false)
     expect(component.mock.calls[3][0].data.field).toBe('fieldValue')
   })
 
@@ -174,7 +184,7 @@ describe('Query', () => {
     expect(component.mock.calls[0][0].loading).toBe(true)
     expect(component.mock.calls[0][0].data.typeOne).toBeUndefined()
 
-    await update()
+    await update(component)
 
     expect(component.mock.calls[3][0].loading).toBe(false)
     expect(component.mock.calls[3][0].data.typeOne.typeOneField).toBe('typeOneFieldValue')
@@ -207,7 +217,7 @@ describe('Query', () => {
     expect(component.mock.calls[0][0].loading).toBe(true)
     expect(component.mock.calls[0][0].data.typeOne).toBeUndefined()
 
-    await update()
+    await update(component)
 
     expect(component.mock.calls[3][0].loading).toBe(false)
     expect(component.mock.calls[3][0].data.typeOne.typeOneField).toBe('typeOneFieldValue')
@@ -237,7 +247,7 @@ describe('Query', () => {
     expect(component.mock.calls[0][0].loading).toBe(true)
     expect(component.mock.calls[0][0].data.typeOne).toBeUndefined()
 
-    await update()
+    await update(component)
 
     expect(component.mock.calls[3][0].loading).toBe(false)
     expect(component.mock.calls[3][0].data.typeOne.typeOneField).toBe('typeOneFieldValue')
@@ -268,7 +278,7 @@ describe('Query', () => {
     expect(component.mock.calls[0][0].loading).toBe(true)
     expect(component.mock.calls[0][0].data.typeOne).toBeUndefined()
 
-    await update()
+    await update(component)
 
     expect(component.mock.calls[3][0].loading).toBe(false)
     expect(component.mock.calls[3][0].data.typeOne.typeOneField).toBe('typeOneFieldValue')
@@ -299,7 +309,7 @@ describe('Query', () => {
     expect(component.mock.calls[0][0].loading).toBe(true)
     expect(component.mock.calls[0][0].data.typeOne).toBeUndefined()
 
-    await update()
+    await update(component)
 
     expect(component.mock.calls[3][0].loading).toBe(false)
     expect(component.mock.calls[3][0].data.typeOne.typeOneField).toBe('typeOneFieldValue')
@@ -334,7 +344,7 @@ describe('Query', () => {
     expect(component.mock.calls[0][0].loading).toBe(true)
     expect(component.mock.calls[0][0].data.typeOne).toBeUndefined()
 
-    await update()
+    await update(component)
 
     expect(component.mock.calls[3][0].loading).toBe(false)
     expect(component.mock.calls[3][0].data.typeOne.typeOneField).toBe('typeOneFieldValue')
@@ -372,7 +382,7 @@ describe('Query', () => {
     expect(inner.mock.calls[0][0].loading).toBe(true)
     expect(inner.mock.calls[0][0].data.field).toBeUndefined()
 
-    await update()
+    await update(outer, inner)
 
     expect(outer.mock.calls[3][0].loading).toBe(false)
     expect(outer.mock.calls[3][0].data.typeOne.typeOneField).toBe('typeOneFieldValue')
@@ -415,7 +425,7 @@ describe('Query', () => {
     expect(inner.mock.calls[0][0].loading).toBe(true)
     expect(inner.mock.calls[0][0].data.field).toBeUndefined()
 
-    await update()
+    await update(outer, inner)
 
     expect(outer.mock.calls[3][0].loading).toBe(false)
     expect(outer.mock.calls[3][0].data.typeOne.typeOneField).toBe('typeOneFieldValue')
@@ -458,7 +468,7 @@ describe('Query', () => {
     expect(inner.mock.calls[0][0].loading).toBe(true)
     expect(inner.mock.calls[0][0].data.field).toBeUndefined()
 
-    await update()
+    await update(outer, inner)
 
     expect(outer.mock.calls[3][0].loading).toBe(false)
     expect(outer.mock.calls[3][0].data.typeOne.typeOneField).toBe('typeOneFieldValue')
@@ -503,8 +513,7 @@ describe('Query', () => {
     expect(inner.mock.calls[0][0].loading).toBe(true)
     expect(inner.mock.calls[0][0].data.field).toBeUndefined()
 
-    await update()
-    await update()
+    await update(outer, inner)
 
     expect(outer.mock.calls[3][0].loading).toBe(false)
     expect(outer.mock.calls[3][0].data.typeOne.typeOneField).toBe('typeOneFieldValue')
