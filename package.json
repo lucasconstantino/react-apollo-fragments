@@ -50,6 +50,10 @@
   },
   "homepage": "https://github.com/lucasconstantino/react-apollo-refragment#readme",
   "jest": {
+    "setupFiles": [
+      "raf/polyfill",
+      "<rootDir>/enzyme.setup.js"
+    ],
     "moduleNameMapper": {
       "react-apollo-refragment": "<rootDir>/src"
     }
