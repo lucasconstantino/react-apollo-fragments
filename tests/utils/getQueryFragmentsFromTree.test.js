@@ -177,4 +177,6 @@ describe('getQueryFragmentsFromTree', () => {
     expect(fragments[1].loc.source.body).toContain('fragment FirstFragment on Type')
     expect(fragments[2].loc.source.body).toContain('fragment SecondFragment on Type')
   })
+
+  it('should extract once a duplicated fragment')
 })
