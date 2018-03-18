@@ -1,6 +1,6 @@
 import gql from 'graphql-tag'
 
-import { getFragmentName } from 'react-apollo-refragment'
+import { getFragmentName } from 'react-apollo-defragment'
 
 describe('getFragmentName', () => {
   it('should extract a fragment AST name', () => {

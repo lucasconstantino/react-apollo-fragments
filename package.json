@@ -1,5 +1,5 @@
 {
-  "name": "react-apollo-refragment",
+  "name": "react-apollo-defragment",
   "version": "0.1.0",
   "description": "Experimental automatic GraphQL fragments loading for React.",
   "main": "lib/index.js",
@@ -51,19 +51,19 @@
   },
   "repository": {
     "type": "git",
-    "url": "git+https://github.com/lucasconstantino/react-apollo-refragment.git"
+    "url": "git+https://github.com/lucasconstantino/react-apollo-defragment.git"
   },
   "bugs": {
-    "url": "https://github.com/lucasconstantino/react-apollo-refragment/issues"
+    "url": "https://github.com/lucasconstantino/react-apollo-defragment/issues"
   },
-  "homepage": "https://github.com/lucasconstantino/react-apollo-refragment#readme",
+  "homepage": "https://github.com/lucasconstantino/react-apollo-defragment#readme",
   "jest": {
     "setupFiles": [
       "raf/polyfill",
       "<rootDir>/enzyme.setup.js"
     ],
     "moduleNameMapper": {
-      "react-apollo-refragment": "<rootDir>/src"
+      "react-apollo-defragment": "<rootDir>/src"
     }
   },
   "dependencies": {

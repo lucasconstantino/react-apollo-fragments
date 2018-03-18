@@ -2,7 +2,7 @@
 import React from 'react'
 import gql from 'graphql-tag'
 
-import { getFragmentsFromTree } from 'react-apollo-refragment'
+import { getFragmentsFromTree } from 'react-apollo-defragment'
 
 describe('getFragmentsFromTree', () => {
   const getFragmentComponent = ({

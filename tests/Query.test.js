@@ -9,7 +9,7 @@ import { makeExecutableSchema, addMockFunctionsToSchema } from 'graphql-tools'
 import { ApolloProvider } from 'react-apollo'
 import { mount } from 'enzyme'
 
-import { Query } from 'react-apollo-refragment'
+import { Query } from 'react-apollo-defragment'
 
 const typeDefs = `
   type Query {
