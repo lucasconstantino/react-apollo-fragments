@@ -4,6 +4,8 @@ Automatic query defragmentation based on React trees.
 
 ![Build status](https://travis-ci.org/lucasconstantino/react-apollo-defragment.svg?branch=master)
 
+:warning: **This is experimental software**, and though there are plenty of unit tests you should probably avoid using on production code
+
 ## Installation
 
 ```
