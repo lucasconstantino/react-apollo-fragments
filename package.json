@@ -1,7 +1,7 @@
 {
   "name": "react-apollo-defragment",
   "version": "0.1.0",
-  "description": "Experimental automatic GraphQL fragments loading for React.",
+  "description": "Automatic query defragmentation based on React trees.",
   "main": "lib/index.js",
   "directories": {
     "test": "test"
