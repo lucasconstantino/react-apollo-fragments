@@ -62,7 +62,7 @@
       "<rootDir>/enzyme.setup.js"
     ],
     "moduleNameMapper": {
-      "^react-apollo-defragment$": "<rootDir>/src",
+      "^react-apollo-defragment(.*)$": "<rootDir>/src$1",
       "^react-apollo/test-utils$": "<rootDir>/local_modules/react-apollo/test-utils.js",
       "^(enzyme.*)$": "<rootDir>/local_modules/enzyme/packages/$1"
     }
