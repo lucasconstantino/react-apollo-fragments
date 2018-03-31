@@ -27,7 +27,7 @@ const temporaryResponse = {
 /**
  * Fragment extraction capable version of react-apollo's Query component.
  */
-class DefragmentedQuery extends React.PureComponent {
+export class Query extends React.PureComponent {
   static propTypes = {
     query: PropTypes.object, // AST propType?
     children: PropTypes.func,
@@ -111,5 +111,3 @@ class DefragmentedQuery extends React.PureComponent {
     )
   }
 }
-
-export const Query = DefragmentedQuery
