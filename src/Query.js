@@ -1,112 +1,64 @@
-import React from 'react'
+import React, { PureComponent, createContext } from 'react'
 import PropTypes from 'prop-types'
 import { concatAST } from 'graphql'
 import { Query as ApolloQuery } from 'react-apollo'
 
-import { getQueryFragmentsFromTree } from './utils'
+// Create a theme context, defaulting to light theme
+export const QueryContext = createContext()
 
-const hold = func => () => {
-  throw new Error(`Cannot execute \`${func}\` while extracting fragments`)
-}
-
-const temporaryResponse = {
-  data: {},
-  variables: {},
-  refetch: hold('refetch'),
-  fetchMore: hold('fetchMore'),
-  updateQuery: hold('updateQuery'),
-  startPolling: hold('startPolling'),
-  stopPolling: hold('stopPolling'),
-  subscribeToMore: hold('subscribeToMore'),
-  loading: true,
-  networkStatus: 1,
-  error: undefined,
-  defragmenting: true,
-}
-
-/**
- * Fragment extraction capable version of react-apollo's Query component.
- */
-export class Query extends React.PureComponent {
+export class Query extends PureComponent {
   static propTypes = {
-    query: PropTypes.object, // AST propType?
-    children: PropTypes.func,
+    skip: PropTypes.bool,
+    query: PropTypes.object.isRequired, // AST proptype?
+    children: PropTypes.func.isRequired,
   }
 
-  static contextTypes = {
-    defragmenting: PropTypes.bool,
+  constructor (props) {
+    super(props)
+
+    this.state = { query: props.query }
   }
 
-  static childContextTypes = {
-    defragmenting: PropTypes.bool,
+  /**
+   * Register a new fragment to this query.
+   *
+   * @TODO: avoid performing setState for each found fragment.
+   * @TODO: only register fragments contained in this query.
+   */
+  registerFragment = fragment => {
+    this.setState({ query: concatAST([this.state.query, fragment]) })
   }
 
-  getChildContext () {
-    return {
-      defragmenting: !this.state.composedQuery || this.state.defragmenting
-    }
-  }
+  /**
+   * Get the result for a given fragment.
+   */
+  getFragmentResult = ({ data, client, ...result }) => ({ id, fragment, optimistic }) => ({
+    ...result,
 
-  constructor (...args) {
-    super(...args)
+    // Provide full query resulting data.
+    queryData: data,
 
-    this.state = {
-      composedQuery: null,
-      defragmenting: false,
-    }
-  }
+    // Provide fragment specific data, when id is given.
+    data: (id && client.readFragment({ id, fragment }, optimistic)) || {},
 
-  componentDidMount () {
-    this.__isMounted = true
-  }
-
-  componentWillUnmount () {
-    this.__isMounted = false
-  }
-
-  defragment = tree => setTimeout(() => {
-    if (this.__isMounted) {
-      this.setState({
-        defragmenting: true
-      })
-    }
-
-    getQueryFragmentsFromTree(tree, this.props.query).then(async fragments => {
-      // Only update if component is still mounted.
-      if (this.__isMounted) {
-        this.setState({
-          defragmenting: false,
-          composedQuery: fragments.length
-            ? concatAST([
-              this.props.query,
-              ...fragments
-            ])
-            : this.props.query
-        })
-      }
-    })
+    // Reinsert client.
+    client,
   })
 
   render () {
     const { children, ...props } = this.props
 
-    if (!this.state.composedQuery) {
-      const tree = children({ ...props, ...temporaryResponse })
-
-      if (!this.state.defragmenting) {
-        this.defragment(tree)
-      }
-
-      return tree
-    }
-
-    if (this.context.defragmenting) {
-      return children({ ...props, ...temporaryResponse })
-    }
-
     return (
-      <ApolloQuery query={ this.state.composedQuery }>
-        { results => children({ ...results, defragmenting: false }) }
+      <ApolloQuery { ...props } query={ this.state.query }>
+        { result => (
+          <QueryContext.Provider value={ {
+            query: this.state.query,
+            registerFragment: this.registerFragment,
+            getFragmentResult: this.getFragmentResult(result)
+          } }>
+            { children(result) }
+          </QueryContext.Provider>
+        ) }
       </ApolloQuery>
     )
   }
