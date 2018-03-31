@@ -40,11 +40,11 @@
     "graphql": "^0.13.2",
     "graphql-tag": "^2.8.0",
     "graphql-tools": "^2.23.1",
-    "jest": "^19.0.2",
+    "jest": "^22.4.3",
     "prop-types": "^15.6.1",
     "raf": "^3.4.0",
     "react": "^16.3.0",
-    "react-apollo": "^2.1.0-beta.3",
+    "react-apollo": "^2.1.1",
     "react-dom": "^16.3.0"
   },
   "repository": {
