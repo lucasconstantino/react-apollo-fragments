@@ -11,9 +11,9 @@ export const ERRORS = {
 class QueryFragment extends PureComponent {
   static propTypes = {
     id: PropTypes.string, // Optional fragment cache id.
-    queryContext: PropTypes.any.isRequired,
     fragment: PropTypes.object.isRequired, // AST proptype?
     children: PropTypes.func.isRequired,
+    queryContext: PropTypes.any.isRequired,
   }
 
   constructor (...args) {

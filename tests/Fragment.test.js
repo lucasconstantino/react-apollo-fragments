@@ -21,21 +21,23 @@ describe.only('Fragment', () => {
   childrens.div = jest.fn(() => <div>content</div>)
 
   // Testing fragment documents.
-  const fragment = gql`fragment NamedOnType on Type { field }`
+  const fragments = {
+    TypeA_fieldA: gql`fragment FieldAOnTypeA on TypeA { fieldA }`
+  }
 
   // Testing query documents.
   const queries = {
-    simple: gql`query Simple { typeResolver { id ...NamedOnType } }`
+    simple: gql`query Simple { typeAResolver { id ...FieldAOnTypeA } }`
   }
 
   const defragmentedQueries = {
-    simple: concatAST([queries.simple, fragment])
+    simple: concatAST([queries.simple, fragments.TypeA_fieldA])
   }
 
   const mocks = {
     simple: [{
       request: { query: defragmentedQueries.simple },
-      result: { data: { typeResolver: { id: '1', field: 'value', __typename: 'Type' } } }
+      result: { data: { typeAResolver: { id: '1', fieldA: 'fieldA value', __typename: 'TypeA' } } }
     }]
   }
 
@@ -54,7 +56,7 @@ describe.only('Fragment', () => {
 
   it('should render children', () => {
     const wrapper = mount(wrapInQuery(
-      <Fragment fragment={ fragment }>{ childrens.div }</Fragment>
+      <Fragment fragment={ fragments.TypeA_fieldA }>{ childrens.div }</Fragment>
     ))
 
     expect(childrens.div).toHaveBeenCalled()
@@ -81,13 +83,13 @@ describe.only('Fragment', () => {
       /The prop `queryContext` is marked as required/
     ])
 
-    expect(() => mount(<Fragment fragment={ fragment }>{ childrens.nil }</Fragment>))
+    expect(() => mount(<Fragment fragment={ fragments.TypeA_fieldA }>{ childrens.nil }</Fragment>))
       .toThrow(ERRORS.NO_PARENT_QUERY)
   })
 
-  it('should automatically add fragments to a parent query', async () => {
+  it('should add a fragment to a parent query', async () => {
     const wrapper = mount(wrapInQuery(
-      <Fragment fragment={ fragment }>{ childrens.nil }</Fragment>
+      <Fragment fragment={ fragments.TypeA_fieldA }>{ childrens.nil }</Fragment>
     ))
 
     await sleep()
@@ -96,12 +98,29 @@ describe.only('Fragment', () => {
     expect(wrappedListener.mock).toHaveProperty('calls.0.0.loading', true)
     expect(wrappedListener.mock).toHaveProperty('calls.1.0.loading', true)
     expect(wrappedListener.mock).toHaveProperty('calls.2.0.loading', false)
-    expect(wrappedListener.mock).toHaveProperty('calls.2.0.data.typeResolver.field', 'value')
+    expect(wrappedListener.mock).toHaveProperty('calls.2.0.data.typeAResolver.fieldA', 'fieldA value')
+  })
+
+  it('should add multiple fragments to a parent query', async () => {
+    const wrapper = mount(wrapInQuery(
+      <div>
+        <Fragment fragment={ fragments.TypeA_fieldA }>{ childrens.nil }</Fragment>
+        <Fragment fragment={ fragments.TypeA_fieldA }>{ childrens.nil }</Fragment>
+      </div>
+    ))
+
+    await sleep()
+    wrapper.update()
+
+    expect(wrappedListener.mock).toHaveProperty('calls.0.0.loading', true)
+    expect(wrappedListener.mock).toHaveProperty('calls.1.0.loading', true)
+    expect(wrappedListener.mock).toHaveProperty('calls.2.0.loading', false)
+    expect(wrappedListener.mock).toHaveProperty('calls.2.0.data.typeAResolver.fieldA', 'fieldA value')
   })
 
   it('should provide Fragment children with query result object', async () => {
     const wrapper = mount(wrapInQuery(
-      <Fragment fragment={ fragment }>{ childrens.nil }</Fragment>
+      <Fragment fragment={ fragments.TypeA_fieldA }>{ childrens.nil }</Fragment>
     ))
 
     await sleep()
@@ -135,12 +154,12 @@ describe.only('Fragment', () => {
       <MockedProvider mocks={ mocks.simple } removeTypename>
         <Query query={ queries.simple }>
           { ({ data, client }) => {
-            const id = data.typeResolver && client.cache.config.dataIdFromObject(
-              data.typeResolver
+            const id = data.typeAResolver && client.cache.config.dataIdFromObject(
+              data.typeAResolver
             )
 
             return (
-              <Fragment fragment={ fragment } id={ id }>
+              <Fragment fragment={ fragments.TypeA_fieldA } id={ id }>
                 { childrens.nil }
               </Fragment>
             )
@@ -152,7 +171,7 @@ describe.only('Fragment', () => {
     await sleep()
     wrapper.update()
 
-    expect(childrens.nil.mock).toHaveProperty('calls.2.0.data.field', 'value')
+    expect(childrens.nil.mock).toHaveProperty('calls.2.0.data.fieldA', 'fieldA value')
   })
 
   it('should provide Fragment children with fragment optimistic result data')
