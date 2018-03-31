@@ -39,10 +39,7 @@ class QueryFragment extends PureComponent {
 export const Fragment = props => (
   <QueryContext.Consumer>
     { queryContext => (
-      <QueryFragment
-        { ...props }
-        queryContext={ queryContext }
-      />
+      <QueryFragment { ...props } queryContext={ queryContext } />
     ) }
   </QueryContext.Consumer>
 )

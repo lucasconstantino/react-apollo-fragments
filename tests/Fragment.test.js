@@ -100,7 +100,7 @@ describe.only('Fragment', () => {
     console.error.filter([
       /The above error occurred in the/,
       new RegExp(ERRORS.NO_PARENT_QUERY),
-      /The prop `query` is marked as required/
+      /The prop `queryContext` is marked as required/
     ])
 
     expect(() => mount(<Fragment fragment={ fragment }>{ childrens.nil }</Fragment>))
