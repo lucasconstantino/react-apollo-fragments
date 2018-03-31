@@ -28,33 +28,42 @@ describe.only('Fragment', () => {
 
   // Testing query documents.
   const queries = {
-    TypeA_fieldA: gql`query Simple { typeAResolver { id ...FieldA_on_TypeA } }`,
-    TypeA_fieldA_fieldB: gql`query Simple { typeAResolver { id ...FieldA_on_TypeA ...FieldB_on_TypeA } }`,
+    TypeA_fieldA: gql`query TypeA_fieldA { typeAResolver { id ...FieldA_on_TypeA } }`,
+    TypeA_fieldA_fieldB: gql`query TypeA_fieldA_fieldB { typeAResolver { id ...FieldA_on_TypeA ...FieldB_on_TypeA } }`,
   }
 
   const defragmentedQueries = {
-    TypeA_fieldA: concatAST([queries.TypeA_fieldA, fragments.TypeA_fieldA]),
-    TypeA_fieldA_fieldB: concatAST([queries.TypeA_fieldA, fragments.TypeA_fieldA, fragments.TypeA_fieldB]),
+    TypeA_fieldA: concatAST([
+      queries.TypeA_fieldA,
+      fragments.TypeA_fieldA
+    ]),
+
+    TypeA_fieldA_fieldB: concatAST([
+      queries.TypeA_fieldA_fieldB,
+      fragments.TypeA_fieldA,
+      fragments.TypeA_fieldB
+    ]),
   }
 
   const mocks = {
-    FieldA_on_TypeA: [{
+    TypeA_fieldA: [{
       request: { query: defragmentedQueries.TypeA_fieldA },
       result: { data: { typeAResolver: { id: '1', fieldA: 'fieldA value', __typename: 'TypeA' } } }
     }],
 
     TypeA_fieldA_fieldB: [{
-      request: { query: defragmentedQueries.TypeA_fieldA_fieldB }
+      request: { query: defragmentedQueries.TypeA_fieldA_fieldB },
+      result: { data: { typeAResolver: { id: '2', fieldA: 'fieldA value', fieldB: 'fieldB value', __typename: 'TypeA' } } }
     }]
   }
 
   const wrappedListener = jest.fn()
 
-  const wrapInQuery = element => (
-    <MockedProvider mocks={ mocks.FieldA_on_TypeA } removeTypename>
-      <Query query={ queries.TypeA_fieldA }>
+  const wrapInQuery = (element, queryName = 'TypeA_fieldA') => (
+    <MockedProvider mocks={ mocks[queryName] } removeTypename>
+      <Query query={ queries[queryName] }>
         { result => {
-          if (result.error) console.error(result.error)
+          // if (result.error) console.log(result.error)
           return wrappedListener.mockReturnValue(element)(result)
         } }
       </Query>
@@ -108,6 +117,7 @@ describe.only('Fragment', () => {
     expect(wrappedListener.mock).toHaveProperty('calls.0.0.loading', true)
     expect(wrappedListener.mock).toHaveProperty('calls.1.0.loading', true)
     expect(wrappedListener.mock).toHaveProperty('calls.2.0.loading', false)
+    expect(wrappedListener.mock).toHaveProperty('calls.2.0.error', undefined)
     expect(wrappedListener.mock).toHaveProperty('calls.2.0.data.typeAResolver.fieldA', 'fieldA value')
   })
 
@@ -144,7 +154,7 @@ describe.only('Fragment', () => {
 
   it('should provide Fragment children with fragment result data when id is available', async () => {
     const wrapper = mount(
-      <MockedProvider mocks={ mocks.FieldA_on_TypeA } removeTypename>
+      <MockedProvider mocks={ mocks.TypeA_fieldA } removeTypename>
         <Query query={ queries.TypeA_fieldA }>
           { ({ data, client }) => {
             const id = data.typeAResolver && client.cache.config.dataIdFromObject(
@@ -168,4 +178,63 @@ describe.only('Fragment', () => {
   })
 
   it('should provide Fragment children with fragment optimistic result data')
+
+  describe('multiple fragments', () => {
+    it('should add multiple fragments to a parent query', async () => {
+      const wrapper = mount(wrapInQuery(
+        <div>
+          <Fragment fragment={ fragments.TypeA_fieldA }>{ childrens.nil }</Fragment>
+          <Fragment fragment={ fragments.TypeA_fieldB }>{ childrens.nil }</Fragment>
+        </div>,
+        'TypeA_fieldA_fieldB'
+      ))
+
+      await sleep()
+      wrapper.update()
+
+      expect(wrappedListener.mock).toHaveProperty('calls.0.0.loading', true)
+      expect(wrappedListener.mock).toHaveProperty('calls.1.0.loading', true)
+      expect(wrappedListener.mock).toHaveProperty('calls.2.0.loading', false)
+      expect(wrappedListener.mock).toHaveProperty('calls.2.0.error', undefined)
+      expect(wrappedListener.mock).toHaveProperty('calls.2.0.data.typeAResolver.fieldA', 'fieldA value')
+      expect(wrappedListener.mock).toHaveProperty('calls.2.0.data.typeAResolver.fieldB', 'fieldB value')
+    })
+
+    it('should provide multiple Fragments with their fragment result data when ids are available', async () => {
+      const childrens = {
+        a: jest.fn(() => null),
+        b: jest.fn(() => null),
+      }
+
+      const wrapper = mount(
+        <MockedProvider mocks={ mocks.TypeA_fieldA_fieldB } removeTypename>
+          <Query query={ queries.TypeA_fieldA_fieldB }>
+            { ({ data, client }) => {
+              const id = data.typeAResolver && client.cache.config.dataIdFromObject(
+                data.typeAResolver
+              )
+
+              return (
+                <div>
+                  <Fragment fragment={ fragments.TypeA_fieldA } id={ id }>
+                    { childrens.a }
+                  </Fragment>
+
+                  <Fragment fragment={ fragments.TypeA_fieldB } id={ id }>
+                    { childrens.b }
+                  </Fragment>
+                </div>
+              )
+            } }
+          </Query>
+        </MockedProvider>
+      )
+
+      await sleep()
+      wrapper.update()
+
+      expect(childrens.a.mock).toHaveProperty('calls.2.0.data.fieldA', 'fieldA value')
+      expect(childrens.b.mock).toHaveProperty('calls.2.0.data.fieldB', 'fieldB value')
+    })
+  })
 })
