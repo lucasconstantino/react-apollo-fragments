@@ -3,34 +3,12 @@ import { mount } from 'enzyme'
 import { concatAST } from 'graphql'
 import { default as originalGql } from 'graphql-tag'
 import { addTypenameToDocument } from 'apollo-utilities'
+import console from 'console-suppress'
+
 import { MockedProvider } from '../local_modules/react-apollo/test-utils'
 
 import { Fragment, Query } from 'react-apollo-defragment'
 import { ERRORS } from 'react-apollo-defragment/Fragment'
-
-const filters = {}
-const logTypes = ['log', 'info', 'warn', 'error']
-
-logTypes.forEach(type => {
-  filters[type] = []
-
-  const original = console[type]
-
-  console[type] = (...args) => {
-    const text = args[0] && args[0].toString && args[0].toString()
-    if (!filters.error.some(filter => filter.test(text))) {
-      original(...args)
-    }
-  }
-
-  console[type].filter = regexes => {
-    filters[type] = filters[type].concat(regexes)
-  }
-
-  console[type].clearFilters = () => {
-    filters[type] = []
-  }
-})
 
 const sleep = (ms = 1) => new Promise(resolve => setTimeout(resolve, ms))
 
@@ -72,7 +50,7 @@ describe.only('Fragment', () => {
   )
 
   beforeEach(jest.clearAllMocks)
-  beforeEach(console.error.clearFilters)
+  beforeEach(console.cleanSuppressors)
 
   it('should render children', () => {
     const wrapper = mount(wrapInQuery(
@@ -84,11 +62,11 @@ describe.only('Fragment', () => {
   })
 
   it('should throw when no fragment is provided', () => {
-    console.error.filter([
+    console.error.suppress(
       /The above error occurred in the/,
       new RegExp(ERRORS.NO_FRAGMENT_PROP),
       /The prop `fragment` is marked as required/
-    ])
+    )
 
     expect(() => mount(wrapInQuery(<Fragment>{ childrens.nil }</Fragment>)))
       .toThrow(ERRORS.NO_FRAGMENT_PROP)
@@ -97,7 +75,7 @@ describe.only('Fragment', () => {
   })
 
   it('should throw when not nested in a Query/Mutation component', () => {
-    console.error.filter([
+    console.error.suppress([
       /The above error occurred in the/,
       new RegExp(ERRORS.NO_PARENT_QUERY),
       /The prop `queryContext` is marked as required/
