@@ -11,7 +11,7 @@ const unique = (v, i, arr) => arr.indexOf(v) === i
 export const QueryContext = createContext([])
 
 // Define a query context contract.
-export const QueryContextPropTypes = PropTypes.shape({
+export const QueryContextPropType = PropTypes.shape({
   registerFragment: PropTypes.func.isRequired,
   getFragmentResult: PropTypes.func.isRequired,
 })

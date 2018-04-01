@@ -1,7 +1,7 @@
 import React, { PureComponent } from 'react'
 import PropTypes from 'prop-types'
 
-import { QueryContext, QueryContextPropTypes } from './Query'
+import { QueryContext, QueryContextPropType } from './Query'
 
 export const ERRORS = {
   NO_PARENT_QUERY: new Error('Fragment component must belong to a parent Query or Mutation component'),
@@ -13,7 +13,7 @@ class QueryFragment extends PureComponent {
     id: PropTypes.string, // Optional fragment cache id.
     fragment: PropTypes.object.isRequired, // AST proptype?
     children: PropTypes.func.isRequired,
-    queryContexts: PropTypes.arrayOf(QueryContextPropTypes).isRequired,
+    queryContexts: PropTypes.arrayOf(QueryContextPropType).isRequired,
   }
 
   constructor (...args) {
