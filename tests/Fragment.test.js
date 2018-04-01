@@ -14,90 +14,113 @@ const sleep = (ms = 1) => new Promise(resolve => setTimeout(resolve, ms))
 
 const gql = (...args) => addTypenameToDocument(originalGql(...args))
 
-describe.only('Fragment', () => {
-  // Testing children render prop implementations.
-  const childrens = {}
-  childrens.nil = jest.fn(() => null)
-  childrens.div = jest.fn(() => <div>content</div>)
+// Testing children render prop implementations.
+const childrens = {}
+childrens.nil = jest.fn(() => null)
+childrens.div = jest.fn(() => <div>content</div>)
 
-  // Testing fragment documents.
-  const fragments = {
-    // TypeA
-    FieldA_on_TypeA: gql`fragment FieldA_on_TypeA on TypeA { fieldA }`,
-    FieldB_on_TypeA: gql`fragment FieldB_on_TypeA on TypeA { fieldB }`,
+// Testing fragment documents.
+const fragments = {
+  // TypeA
+  FieldA_on_TypeA: gql`fragment FieldA_on_TypeA on TypeA { fieldA }`,
+  FieldB_on_TypeA: gql`fragment FieldB_on_TypeA on TypeA { fieldB }`,
 
-    // TypeB
-    FieldA_on_TypeB: gql`fragment FieldA_on_TypeB on TypeB { fieldA }`,
-  }
+  // TypeB
+  FieldA_on_TypeB: gql`fragment FieldA_on_TypeB on TypeB { fieldA }`,
+  FieldTypeA_on_TypeB: gql`fragment FieldTypeA_on_TypeB on TypeB { fieldTypeA { id ...FieldA_on_TypeA } }`
+}
 
-  // Testing query documents.
-  const queries = {
-    // Misc
-    noFragment: gql`query NoFragment { rootField }`,
+const defragmentedFragments = {
+  FieldTypeA_on_TypeB: concatAST([
+    fragments.FieldTypeA_on_TypeB,
+    fragments.FieldA_on_TypeA
+  ])
+}
 
-    // TypeA
-    TypeA_fieldA: gql`query TypeA_fieldA { typeAResolver { id ...FieldA_on_TypeA } }`,
-    TypeA_fieldA_fieldB: gql`query TypeA_fieldA_fieldB { typeAResolver { id ...FieldA_on_TypeA ...FieldB_on_TypeA } }`,
+// Testing query documents.
+const queries = {
+  // Misc
+  noFragment: gql`query NoFragment { rootField }`,
 
-    // TypeB
-    TypeB_fieldA: gql`query TypeB_fieldA { typeBResolver { id ...FieldA_on_TypeB } }`,
-  }
+  // TypeA
+  TypeA_fieldA: gql`query TypeA_fieldA { typeAResolver { id ...FieldA_on_TypeA } }`,
+  TypeA_fieldA_fieldB: gql`query TypeA_fieldA_fieldB { typeAResolver { id ...FieldA_on_TypeA ...FieldB_on_TypeA } }`,
 
-  const defragmentedQueries = {
-    // TypeA
-    TypeA_fieldA: concatAST([
-      queries.TypeA_fieldA,
-      fragments.FieldA_on_TypeA
-    ]),
+  // TypeB
+  TypeB_fieldA: gql`query TypeB_fieldA { typeBResolver { id ...FieldA_on_TypeB } }`,
+  TypeB_fieldTypeA: gql`query TypeB_fieldTypeA { typeBResolver { id ...FieldTypeA_on_TypeB } }`,
+}
 
-    TypeA_fieldA_fieldB: concatAST([
-      queries.TypeA_fieldA_fieldB,
-      fragments.FieldA_on_TypeA,
-      fragments.FieldB_on_TypeA
-    ]),
+const defragmentedQueries = {
+  // TypeA
+  TypeA_fieldA: concatAST([
+    queries.TypeA_fieldA,
+    fragments.FieldA_on_TypeA
+  ]),
 
-    // TypeB
-    TypeB_fieldA: concatAST([
-      queries.TypeB_fieldA,
-      fragments.FieldA_on_TypeB
-    ]),
-  }
+  TypeA_fieldA_fieldB: concatAST([
+    queries.TypeA_fieldA_fieldB,
+    fragments.FieldA_on_TypeA,
+    fragments.FieldB_on_TypeA
+  ]),
 
-  const mocks = {
-    // Misc
-    noFragment: [{
-      request: { query: queries.noFragment },
-      result: { data: { rootField: 'rootField value' } }
-    }],
+  // TypeB
+  TypeB_fieldA: concatAST([
+    queries.TypeB_fieldA,
+    fragments.FieldA_on_TypeB
+  ]),
 
-    // TypeA
-    TypeA_fieldA: [{
-      request: { query: defragmentedQueries.TypeA_fieldA },
-      result: { data: { typeAResolver: { id: '1', fieldA: 'fieldA value', __typename: 'TypeA' } } }
-    }],
+  TypeB_fieldTypeA: concatAST([
+    queries.TypeB_fieldTypeA,
+    defragmentedFragments.FieldTypeA_on_TypeB
+  ])
+}
 
-    TypeA_fieldA_fieldB: [{
-      request: { query: defragmentedQueries.TypeA_fieldA_fieldB },
-      result: { data: { typeAResolver: { id: '2', fieldA: 'fieldA value', fieldB: 'fieldB value', __typename: 'TypeA' } } }
-    }],
+const mocks = {}
 
-    // TypeB
-    TypeB_fieldA: [{
-      request: { query: defragmentedQueries.TypeB_fieldA },
-      result: { data: { typeAResolver: { id: '1', fieldA: 'fieldA value', __typename: 'TypeA' } } }
-    }],
-  }
+// Misc
+mocks.noFragment = [{
+  request: { query: queries.noFragment },
+  result: { data: { rootField: 'rootField value' } }
+}]
 
-  const wrappedListener = jest.fn()
+// TypeA
+mocks.TypeA_fieldA = [{
+  request: { query: defragmentedQueries.TypeA_fieldA },
+  result: { data: { typeAResolver: { id: '1', fieldA: 'fieldA value', __typename: 'TypeA' } } }
+}]
 
-  const wrapInQuery = (element, queryName = 'TypeA_fieldA') => (
-    <MockedProvider mocks={ mocks[queryName] } removeTypename>
-      <Query query={ queries[queryName] }>
-        { wrappedListener.mockReturnValue(element) }
-      </Query>
-    </MockedProvider>
-  )
+mocks.TypeA_fieldA_fieldB = [{
+  request: { query: defragmentedQueries.TypeA_fieldA_fieldB },
+  result: { data: { typeAResolver: { id: '2', fieldA: 'fieldA value', fieldB: 'fieldB value', __typename: 'TypeA' } } }
+}]
 
+// TypeB
+mocks.TypeB_fieldA = [{
+  request: { query: defragmentedQueries.TypeB_fieldA },
+  result: { data: { typeAResolver: { id: '1', fieldA: 'fieldA value', __typename: 'TypeA' } } }
+}]
+
+mocks.TypeB_fieldTypeA = [{
+  request: { query: defragmentedQueries.TypeB_fieldTypeA },
+  result: { data: { typeBResolver: {
+    id: '1',
+    fieldTypeA: mocks.TypeA_fieldA[0].result.data.typeAResolver,
+    __typename: 'TypeA'
+  } } }
+}]
+
+const wrappedListener = jest.fn()
+
+const wrapInQuery = (element, queryName = 'TypeA_fieldA') => (
+  <MockedProvider mocks={ mocks[queryName] } removeTypename>
+    <Query query={ queries[queryName] }>
+      { wrappedListener.mockReturnValue(element) }
+    </Query>
+  </MockedProvider>
+)
+
+describe('Fragment', () => {
   beforeEach(jest.clearAllMocks)
   beforeEach(console.cleanSuppressors)
 
