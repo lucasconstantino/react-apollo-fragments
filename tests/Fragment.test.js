@@ -386,4 +386,33 @@ describe('Fragment', () => {
       expect(children.b.mock).toHaveProperty('calls.3.0.data.typeAResolver.fieldA', 'fieldA value')
     })
   })
+
+  describe('nested fragments', () => {
+    it('should add a nested fragment to a parent query', async () => {
+      console.error.suppress(
+        'You are using the simple',
+        'heuristic fragment matching going on'
+      )
+
+      const wrapper = mount(wrapInQuery(
+        <Fragment fragment={ fragments.FieldTypeA_on_TypeB }>
+          { () => (
+            <Fragment fragment={ fragments.FieldA_on_TypeA }>
+              { childrens.nil }
+            </Fragment>
+          ) }
+        </Fragment>,
+        'TypeB_fieldTypeA'
+      ))
+
+      await sleep()
+      wrapper.update()
+
+      expect(wrappedListener.mock).toHaveProperty('calls.0.0.loading', true)
+      expect(wrappedListener.mock).toHaveProperty('calls.1.0.loading', true)
+      expect(wrappedListener.mock).toHaveProperty('calls.2.0.loading', false)
+      expect(wrappedListener.mock).toHaveProperty('calls.2.0.error', undefined)
+      expect(wrappedListener.mock).toHaveProperty('calls.2.0.data.typeBResolver.fieldTypeA.fieldA', 'fieldA value')
+    })
+  })
 })
