@@ -3,9 +3,12 @@ import PropTypes from 'prop-types'
 import { concatAST } from 'graphql'
 import { Query as ApolloQuery } from 'react-apollo'
 
-import { getFragmentName, getRequestedFragmentNames } from './utils'
-
-const unique = (v, i, arr) => arr.indexOf(v) === i
+import {
+  getFragmentName,
+  getFragmentNames,
+  getRequestedFragmentNames,
+  unique
+} from './utils'
 
 // Create a theme context, defaulting to light theme
 export const QueryContext = createContext([])
@@ -51,21 +54,17 @@ export class Query extends PureComponent {
   registerFragment = fragment => {
     // Early ignore when no more fragment is missing.
     if (this.missingFragmentsNames.length) {
-      const name = getFragmentName(fragment)
-      const index = this.missingFragmentsNames.indexOf(name)
+      const names = getFragmentNames(fragment)
+      const indexes = names
+        .map(name => this.missingFragmentsNames.indexOf(name))
+        .filter(index => index !== -1)
 
       // Ignore when this fragment is not missing.
-      if (index !== -1) {
+      if (indexes.length) {
         // Remove from missing.
-        this.missingFragmentsNames.splice(index, 1)
+        indexes.forEach(index => this.missingFragmentsNames.splice(index, 1))
         // Add fragment to stack.
         this.fragments.push(fragment)
-
-        const fragmentNames = getRequestedFragmentNames(fragment).filter(unique)
-
-        // Inform of nested fragments.
-        this.fragmentNames = this.fragmentNames.concat(fragmentNames)
-        this.missingFragmentsNames = this.missingFragmentsNames.concat(fragmentNames)
 
         // When no more missing fragments, alter parent query.
         if (!this.missingFragmentsNames.length) {
@@ -81,8 +80,10 @@ export class Query extends PureComponent {
   getFragmentResult = result => ({ id, fragment, optimistic }) => {
     const { data: queryData, client } = result
 
+    const fragmentName = getFragmentName(fragment)
+
     // Fragment data can only be fetched when id is provided.
-    const data = (id && client.readFragment({ id, fragment }, optimistic)) || {}
+    const data = (id && client.readFragment({ id, fragment, fragmentName }, optimistic)) || {}
 
     // Provide query resulting data on the queryData prop.
     // Provide fragment specific data on the data prop.
