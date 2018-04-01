@@ -63,7 +63,7 @@ export class Query extends PureComponent {
 
         const fragmentNames = getRequestedFragmentNames(fragment).filter(unique)
 
-        // Register nested fragments data.
+        // Inform of nested fragments.
         this.fragmentNames = this.fragmentNames.concat(fragmentNames)
         this.missingFragmentsNames = this.missingFragmentsNames.concat(fragmentNames)
 
