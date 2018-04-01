@@ -7,8 +7,8 @@ import console from 'console-suppress'
 
 import { MockedProvider } from '../local_modules/react-apollo/test-utils'
 
-import { Fragment, Query } from 'react-apollo-defragment'
-import { ERRORS } from 'react-apollo-defragment/Fragment'
+import { Fragment, Query } from 'react-apollo-fragments'
+import { ERRORS } from 'react-apollo-fragments/Fragment'
 
 const sleep = (ms = 1) => new Promise(resolve => setTimeout(resolve, ms))
 

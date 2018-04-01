@@ -1,6 +1,6 @@
 import gql from 'graphql-tag'
 
-import { getRequestedFragmentNames } from 'react-apollo-defragment'
+import { getRequestedFragmentNames } from 'react-apollo-fragments'
 
 describe('getRequestedFragmentNames', () => {
   it('should extract a single fragment name from the query', () => {

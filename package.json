@@ -1,5 +1,5 @@
 {
-  "name": "react-apollo-defragment",
+  "name": "react-apollo-fragments",
   "version": "0.2.0",
   "description": "Automatic query defragmentation based on React trees.",
   "main": "lib/index.js",
@@ -51,19 +51,19 @@
   },
   "repository": {
     "type": "git",
-    "url": "git+https://github.com/lucasconstantino/react-apollo-defragment.git"
+    "url": "git+https://github.com/lucasconstantino/react-apollo-fragments.git"
   },
   "bugs": {
-    "url": "https://github.com/lucasconstantino/react-apollo-defragment/issues"
+    "url": "https://github.com/lucasconstantino/react-apollo-fragments/issues"
   },
-  "homepage": "https://github.com/lucasconstantino/react-apollo-defragment#readme",
+  "homepage": "https://github.com/lucasconstantino/react-apollo-fragments#readme",
   "jest": {
     "setupFiles": [
       "raf/polyfill",
       "<rootDir>/enzyme.setup.js"
     ],
     "moduleNameMapper": {
-      "^react-apollo-defragment(.*)$": "<rootDir>/src$1",
+      "^react-apollo-fragments(.*)$": "<rootDir>/src$1",
       "^react-apollo/test-utils$": "<rootDir>/local_modules/react-apollo/test-utils.js",
       "^(enzyme.*)$": "<rootDir>/local_modules/enzyme/packages/$1"
     }

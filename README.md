@@ -2,17 +2,17 @@
 
 Automatic query defragmentation based on React trees.
 
-[![Build status](https://travis-ci.org/lucasconstantino/react-apollo-defragment.svg?branch=master)](https://travis-ci.org/lucasconstantino/react-apollo-defragment)
+[![Build status](https://travis-ci.org/lucasconstantino/react-apollo-fragments.svg?branch=master)](https://travis-ci.org/lucasconstantino/react-apollo-fragments)
 
 :warning: **This is experimental software**, and though there are plenty of unit tests you should probably avoid using on production code
 
 ## Installation
 
 ```
-npm install react-apollo-defragment
+npm install react-apollo-fragments
 ```
 
-> react-apollo-defragment has peer dependency on [react](https://github.com/facebook/react), [react-apollo](https://github.com/apollographql/react-apollo), [graphql](https://github.com/graphql/graphql-js), and [prop-types](https://github.com/facebook/prop-types). Make sure to have them installed.
+> react-apollo-fragments has peer dependency on [react](https://github.com/facebook/react), [react-apollo](https://github.com/apollographql/react-apollo), [graphql](https://github.com/graphql/graphql-js), and [prop-types](https://github.com/facebook/prop-types). Make sure to have them installed.
 
 ## Motivation
 
@@ -31,7 +31,7 @@ This project exposes a substitute [Query component](https://github.com/apollogra
 The usage is the same as with react-apollo's `Query` component, only in this case no fragments must be imported and declared from the component:
 
 ```js
-import { Query } from 'react-apollo-defragment'
+import { Query } from 'react-apollo-fragments'
 import gql from 'graphql-tag'
 
 // PersonAvatar.js: a component using fragments.
