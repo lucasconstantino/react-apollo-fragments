@@ -27,11 +27,22 @@ const fragments = {
 
   // TypeB
   FieldA_on_TypeB: gql`fragment FieldA_on_TypeB on TypeB { fieldA }`,
-  FieldTypeA_on_TypeB: gql`fragment FieldTypeA_on_TypeB on TypeB { fieldTypeA { id ...FieldA_on_TypeA } }`
+  FieldTypeA_on_TypeB: gql`fragment FieldTypeA_on_TypeB on TypeB { fieldTypeA { id ...FieldA_on_TypeA } }`,
+
+  // TypeC
+  FieldTypeA_on_FieldTypeB_on_TypeC: gql`fragment FieldTypeA_on_FieldTypeB_on_TypeC on TypeC {
+    fieldTypeB { id ...FieldTypeA_on_TypeB }
+  }`,
 }
 
 const defragmentedFragments = {
   FieldTypeA_on_TypeB: concatAST([
+    fragments.FieldTypeA_on_TypeB,
+    fragments.FieldA_on_TypeA
+  ]),
+
+  FieldTypeA_on_FieldTypeB_on_TypeC: concatAST([
+    fragments.FieldTypeA_on_FieldTypeB_on_TypeC,
     fragments.FieldTypeA_on_TypeB,
     fragments.FieldA_on_TypeA
   ])
@@ -49,6 +60,9 @@ const queries = {
   // TypeB
   TypeB_fieldA: gql`query TypeB_fieldA { typeBResolver { id ...FieldA_on_TypeB } }`,
   TypeB_fieldTypeA: gql`query TypeB_fieldTypeA { typeBResolver { id ...FieldTypeA_on_TypeB } }`,
+
+  // TypeB
+  TypeC_fieldTypeB_fieldTypeA: gql`query TypeC_fieldTypeB_fieldTypeA { typeCResolver { id ...FieldTypeA_on_FieldTypeB_on_TypeC } }`,
 }
 
 const defragmentedQueries = {
@@ -73,6 +87,12 @@ const defragmentedQueries = {
   TypeB_fieldTypeA: concatAST([
     queries.TypeB_fieldTypeA,
     defragmentedFragments.FieldTypeA_on_TypeB
+  ]),
+
+  // TypeC
+  TypeC_fieldTypeB_fieldTypeA: concatAST([
+    queries.TypeC_fieldTypeB_fieldTypeA,
+    defragmentedFragments.FieldTypeA_on_FieldTypeB_on_TypeC,
   ])
 }
 
@@ -106,7 +126,17 @@ mocks.TypeB_fieldTypeA = [{
   result: { data: { typeBResolver: {
     id: '1',
     fieldTypeA: mocks.TypeA_fieldA[0].result.data.typeAResolver,
-    __typename: 'TypeA'
+    __typename: 'TypeB'
+  } } }
+}]
+
+// TypeC
+mocks.TypeC_fieldTypeB_fieldTypeA = [{
+  request: { query: defragmentedQueries.TypeC_fieldTypeB_fieldTypeA },
+  result: { data: { typeCResolver: {
+    id: '1',
+    fieldTypeB: mocks.TypeB_fieldTypeA[0].result.data.typeBResolver,
+    __typename: 'TypeC'
   } } }
 }]
 
@@ -413,6 +443,296 @@ describe('Fragment', () => {
       expect(wrappedListener.mock).toHaveProperty('calls.2.0.loading', false)
       expect(wrappedListener.mock).toHaveProperty('calls.2.0.error', undefined)
       expect(wrappedListener.mock).toHaveProperty('calls.2.0.data.typeBResolver.fieldTypeA.fieldA', 'fieldA value')
+    })
+
+    it('should provide nested Fragment children with query result object', async () => {
+      console.error.suppress(
+        'You are using the simple',
+        'heuristic fragment matching going on'
+      )
+
+      const children = jest.fn(() => (
+        <Fragment fragment={ fragments.FieldA_on_TypeA }>
+          { childrens.nil }
+        </Fragment>
+      ))
+
+      const wrapper = mount(wrapInQuery(
+        <Fragment fragment={ fragments.FieldTypeA_on_TypeB }>
+          { children }
+        </Fragment>,
+        'TypeB_fieldTypeA'
+      ))
+
+      await sleep()
+      wrapper.update()
+
+      expect(childrens.nil.mock).toHaveProperty('calls.0.0.loading', true)
+      expect(childrens.nil.mock).toHaveProperty('calls.1.0.loading', true)
+      expect(childrens.nil.mock).toHaveProperty('calls.2.0.loading', false)
+
+      expect(children.mock).toHaveProperty('calls.0.0.loading', true)
+      expect(children.mock).toHaveProperty('calls.1.0.loading', true)
+      expect(children.mock).toHaveProperty('calls.2.0.loading', false)
+
+      const resultKeys = [
+        'data',
+        'queryData',
+
+        'variables',
+        'refetch',
+        'fetchMore',
+        'updateQuery',
+        'startPolling',
+        'stopPolling',
+        'subscribeToMore',
+        'loading',
+        'networkStatus',
+        'error',
+        'client',
+      ]
+
+      resultKeys.forEach(key => {
+        expect(children.mock).toHaveProperty(`calls.2.0.${key}`)
+        expect(childrens.nil.mock).toHaveProperty(`calls.2.0.${key}`)
+      })
+    })
+
+    it('should provide nested Fragment children with fragment result data when id is available', async () => {
+      console.error.suppress(
+        'You are using the simple',
+        'heuristic fragment matching going on'
+      )
+
+      const children = jest.fn(({ data, client }) => {
+        const id = data.fieldTypeA && client.cache.config.dataIdFromObject(
+          data.fieldTypeA
+        )
+
+        return (
+          <Fragment fragment={ fragments.FieldA_on_TypeA } id={ id }>
+            { childrens.nil }
+          </Fragment>
+        )
+      })
+
+      const wrapper = mount(
+        <MockedProvider mocks={ mocks.TypeB_fieldTypeA } removeTypename>
+          <Query query={ queries.TypeB_fieldTypeA }>
+            { ({ data, client }) => {
+              const id = data.typeBResolver && client.cache.config.dataIdFromObject(
+                data.typeBResolver
+              )
+
+              return (
+                <Fragment fragment={ fragments.FieldTypeA_on_TypeB } id={ id }>
+                  { children }
+                </Fragment>
+              )
+            } }
+          </Query>
+        </MockedProvider>
+      )
+
+      await sleep()
+      wrapper.update()
+
+      // Parent fragment.
+      expect(children.mock).toHaveProperty('calls.2.0.loading', false)
+      expect(children.mock).toHaveProperty('calls.2.0.data.fieldTypeA.fieldA', 'fieldA value')
+
+      // Nested fragment.
+      expect(childrens.nil.mock).toHaveProperty('calls.2.0.loading', false)
+      expect(childrens.nil.mock).toHaveProperty('calls.2.0.data.fieldA', 'fieldA value')
+    })
+
+    describe('nested nested fragments', () => {
+      it('should add a nested nested fragment to a parent query', async () => {
+        console.error.suppress(
+          'You are using the simple',
+          'heuristic fragment matching going on'
+        )
+
+        const wrapper = mount(wrapInQuery(
+          <Fragment fragment={ fragments.FieldTypeA_on_FieldTypeB_on_TypeC }>
+            { () => (
+              <Fragment fragment={ fragments.FieldTypeA_on_TypeB }>
+                { () => (
+                  <Fragment fragment={ fragments.FieldA_on_TypeA }>
+                    { childrens.nil }
+                  </Fragment>
+                ) }
+              </Fragment>
+            ) }
+          </Fragment>,
+          'TypeC_fieldTypeB_fieldTypeA'
+        ))
+
+        await sleep()
+        wrapper.update()
+
+        expect(wrappedListener.mock).toHaveProperty('calls.0.0.loading', true)
+        expect(wrappedListener.mock).toHaveProperty('calls.1.0.loading', true)
+        expect(wrappedListener.mock).toHaveProperty('calls.2.0.loading', false)
+        expect(wrappedListener.mock).toHaveProperty('calls.2.0.error', undefined)
+        expect(wrappedListener.mock).toHaveProperty('calls.2.0.data.typeCResolver.fieldTypeB.fieldTypeA.fieldA', 'fieldA value')
+      })
+
+      it('should provide nested nested Fragment children with query result object', async () => {
+        console.error.suppress(
+          'You are using the simple',
+          'heuristic fragment matching going on'
+        )
+
+        const fragmentChildrens = {}
+
+        fragmentChildrens.first = jest.fn(() => (
+          <Fragment fragment={ fragments.FieldTypeA_on_FieldTypeB_on_TypeC }>
+            { fragmentChildrens.second }
+          </Fragment>
+        ))
+
+        fragmentChildrens.second = jest.fn(() => (
+          <Fragment fragment={ fragments.FieldTypeA_on_TypeB }>
+            { fragmentChildrens.third }
+          </Fragment>
+        ))
+
+        fragmentChildrens.third = jest.fn(() => (
+          <Fragment fragment={ fragments.FieldA_on_TypeA }>
+            { childrens.nil }
+          </Fragment>
+        ))
+
+        const wrapper = mount(
+          <MockedProvider mocks={ mocks.TypeC_fieldTypeB_fieldTypeA } removeTypename>
+            <Query query={ queries.TypeC_fieldTypeB_fieldTypeA }>
+              { fragmentChildrens.first }
+            </Query>
+          </MockedProvider>
+        )
+
+        await sleep()
+        wrapper.update()
+
+        expect(fragmentChildrens.second.mock).toHaveProperty('calls.0.0.loading', true)
+        expect(fragmentChildrens.second.mock).toHaveProperty('calls.1.0.loading', true)
+        expect(fragmentChildrens.second.mock).toHaveProperty('calls.2.0.loading', false)
+
+        expect(fragmentChildrens.third.mock).toHaveProperty('calls.0.0.loading', true)
+        expect(fragmentChildrens.third.mock).toHaveProperty('calls.1.0.loading', true)
+        expect(fragmentChildrens.third.mock).toHaveProperty('calls.2.0.loading', false)
+
+        expect(childrens.nil.mock).toHaveProperty('calls.0.0.loading', true)
+        expect(childrens.nil.mock).toHaveProperty('calls.1.0.loading', true)
+        expect(childrens.nil.mock).toHaveProperty('calls.2.0.loading', false)
+
+        const resultKeys = [
+          'data',
+          'queryData',
+
+          'variables',
+          'refetch',
+          'fetchMore',
+          'updateQuery',
+          'startPolling',
+          'stopPolling',
+          'subscribeToMore',
+          'loading',
+          'networkStatus',
+          'error',
+          'client',
+        ]
+
+        resultKeys.forEach(key => {
+          expect(childrens.nil.mock).toHaveProperty(`calls.2.0.${key}`)
+          expect(fragmentChildrens.second.mock).toHaveProperty(`calls.2.0.${key}`)
+          expect(fragmentChildrens.third.mock).toHaveProperty(`calls.2.0.${key}`)
+        })
+      })
+
+      it('should provide nested nested Fragment children with fragment result data when id is available', async () => {
+        console.error.suppress(
+          'You are using the simple',
+          'heuristic fragment matching going on'
+        )
+
+        console.error.suppress(
+          'You are using the simple',
+          'heuristic fragment matching going on'
+        )
+
+        const fragmentChildrens = {}
+
+        fragmentChildrens.first = jest.fn(({ data, client }) => {
+          const id = data.typeCResolver && client.cache.config.dataIdFromObject(
+            data.typeCResolver
+          )
+
+          return (
+            <Fragment id={ id } fragment={ fragments.FieldTypeA_on_FieldTypeB_on_TypeC }>
+              { fragmentChildrens.second }
+            </Fragment>
+          )
+        })
+
+        fragmentChildrens.second = jest.fn(({ data, client }) => {
+          const id = data.fieldTypeB && client.cache.config.dataIdFromObject(
+            data.fieldTypeB
+          )
+
+          return (
+            <Fragment id={ id } fragment={ fragments.FieldTypeA_on_TypeB }>
+              { fragmentChildrens.third }
+            </Fragment>
+          )
+        })
+
+        fragmentChildrens.third = jest.fn(({ data, client }) => {
+          const id = data.fieldTypeA && client.cache.config.dataIdFromObject(
+            data.fieldTypeA
+          )
+
+          return (
+            <Fragment id={ id } fragment={ fragments.FieldA_on_TypeA }>
+              { childrens.nil }
+            </Fragment>
+          )
+        })
+
+        const wrapper = mount(
+          <MockedProvider mocks={ mocks.TypeC_fieldTypeB_fieldTypeA } removeTypename>
+            <Query query={ queries.TypeC_fieldTypeB_fieldTypeA }>
+              { fragmentChildrens.first }
+            </Query>
+          </MockedProvider>
+        )
+
+        await sleep()
+        wrapper.update()
+
+        await sleep()
+        wrapper.update()
+
+        await sleep()
+        wrapper.update()
+
+        // Query data.
+        expect(fragmentChildrens.first.mock).toHaveProperty('calls.2.0.loading', false)
+        expect(fragmentChildrens.first.mock).toHaveProperty('calls.2.0.data.typeCResolver.fieldTypeB.fieldTypeA.fieldA', 'fieldA value')
+
+        // First fragment data.
+        expect(fragmentChildrens.second.mock).toHaveProperty('calls.2.0.loading', false)
+        expect(fragmentChildrens.second.mock).toHaveProperty('calls.2.0.data.fieldTypeB.fieldTypeA.fieldA', 'fieldA value')
+
+        // Second fragment data.
+        expect(fragmentChildrens.third.mock).toHaveProperty('calls.2.0.loading', false)
+        expect(fragmentChildrens.third.mock).toHaveProperty('calls.2.0.data.fieldTypeA.fieldA', 'fieldA value')
+
+        // Third fragment data.
+        expect(childrens.nil.mock).toHaveProperty('calls.2.0.loading', false)
+        expect(childrens.nil.mock).toHaveProperty('calls.2.0.data.fieldA', 'fieldA value')
+      })
     })
   })
 })
