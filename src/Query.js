@@ -28,9 +28,11 @@ export class Query extends PureComponent {
 
     this.state = { query: props.query }
 
+    const fragmentNames = getRequestedFragmentNames(props.query).filter(unique)
+
     this.fragments = []
-    this.fragmentNames = getRequestedFragmentNames(props.query).filter(unique)
-    this.missingFragmentsNames = [].concat(this.fragmentNames)
+    this.fragmentNames = [].concat(fragmentNames) // clone array.
+    this.missingFragmentsNames = [].concat(fragmentNames) // clone array.
   }
 
   /**
@@ -58,6 +60,12 @@ export class Query extends PureComponent {
         this.missingFragmentsNames.splice(index, 1)
         // Add fragment to stack.
         this.fragments.push(fragment)
+
+        const fragmentNames = getRequestedFragmentNames(fragment).filter(unique)
+
+        // Register nested fragments data.
+        this.fragmentNames = this.fragmentNames.concat(fragmentNames)
+        this.missingFragmentsNames = this.missingFragmentsNames.concat(fragmentNames)
 
         // When no more missing fragments, alter parent query.
         if (!this.missingFragmentsNames.length) {
