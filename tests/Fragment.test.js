@@ -151,7 +151,9 @@ describe.only('Fragment', () => {
 
   it('should provide Fragment children with query result object', async () => {
     const wrapper = mount(wrapInQuery(
-      <Fragment fragment={ fragments.FieldA_on_TypeA }>{ childrens.nil }</Fragment>
+      <Fragment fragment={ fragments.FieldA_on_TypeA }>
+        { childrens.nil }
+      </Fragment>
     ))
 
     await sleep()
@@ -162,6 +164,9 @@ describe.only('Fragment', () => {
     expect(childrens.nil.mock).toHaveProperty('calls.2.0.loading', false)
 
     const resultKeys = [
+      'data',
+      'queryData',
+
       'variables',
       'refetch',
       'fetchMore',
@@ -202,6 +207,7 @@ describe.only('Fragment', () => {
     await sleep()
     wrapper.update()
 
+    expect(childrens.nil.mock).toHaveProperty('calls.2.0.loading', false)
     expect(childrens.nil.mock).toHaveProperty('calls.2.0.data.fieldA', 'fieldA value')
   })
 

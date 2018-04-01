@@ -35,6 +35,8 @@ export class Query extends PureComponent {
 
   /**
    * Identifies if a fragment belongs to this query.
+   *
+   * @TODO: should memoize this.
    */
   contains = fragment => this.fragmentNames.indexOf(getFragmentName(fragment)) !== -1
 
