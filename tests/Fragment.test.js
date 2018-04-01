@@ -32,6 +32,9 @@ describe.only('Fragment', () => {
 
   // Testing query documents.
   const queries = {
+    // Misc
+    noFragment: gql`query NoFragment { rootField }`,
+
     // TypeA
     TypeA_fieldA: gql`query TypeA_fieldA { typeAResolver { id ...FieldA_on_TypeA } }`,
     TypeA_fieldA_fieldB: gql`query TypeA_fieldA_fieldB { typeAResolver { id ...FieldA_on_TypeA ...FieldB_on_TypeA } }`,
@@ -61,6 +64,12 @@ describe.only('Fragment', () => {
   }
 
   const mocks = {
+    // Misc
+    noFragment: [{
+      request: { query: queries.noFragment },
+      result: { data: { rootField: 'rootField value' } }
+    }],
+
     // TypeA
     TypeA_fieldA: [{
       request: { query: defragmentedQueries.TypeA_fieldA },
@@ -84,10 +93,7 @@ describe.only('Fragment', () => {
   const wrapInQuery = (element, queryName = 'TypeA_fieldA') => (
     <MockedProvider mocks={ mocks[queryName] } removeTypename>
       <Query query={ queries[queryName] }>
-        { result => {
-          // if (result.error) console.log(result.error)
-          return wrappedListener.mockReturnValue(element)(result)
-        } }
+        { wrappedListener.mockReturnValue(element) }
       </Query>
     </MockedProvider>
   )
@@ -257,6 +263,98 @@ describe.only('Fragment', () => {
 
       expect(childrens.a.mock).toHaveProperty('calls.2.0.data.fieldA', 'fieldA value')
       expect(childrens.b.mock).toHaveProperty('calls.2.0.data.fieldB', 'fieldB value')
+    })
+  })
+
+  describe('nested queries', () => {
+    it('should add a fragment only to the belonging query', async () => {
+      const children = jest.fn(result => (
+        <Query query={ queries.noFragment }>
+          { resultNoFragment => (
+            <Fragment fragment={ fragments.FieldA_on_TypeA }>
+              { childrens.nil }
+            </Fragment>
+          ) }
+        </Query>
+      ))
+
+      const wrapper = mount(
+        <MockedProvider mocks={ [].concat(mocks.TypeA_fieldA, mocks.TypeB_fieldA) } removeTypename>
+          <Query query={ queries.TypeA_fieldA }>
+            { children }
+          </Query>
+        </MockedProvider>
+      )
+
+      await sleep()
+      wrapper.update()
+
+      expect(children.mock).toHaveProperty('calls.0.0.loading', true)
+      expect(children.mock).toHaveProperty('calls.1.0.loading', true)
+      expect(children.mock).toHaveProperty('calls.2.0.loading', false)
+      expect(children.mock).toHaveProperty('calls.2.0.error', undefined)
+      expect(children.mock).toHaveProperty('calls.2.0.data.typeAResolver.fieldA', 'fieldA value')
+    })
+
+    it('should add a fragment only to the nearest belonging query', async () => {
+      const children = {}
+
+      children.a = jest.fn(() => (
+        <div>
+          <Fragment fragment={ fragments.FieldA_on_TypeA }>
+            { childrens.nil }
+          </Fragment>
+
+          <Fragment fragment={ fragments.FieldB_on_TypeA }>
+            { childrens.nil }
+          </Fragment>
+
+          <Query query={ queries.TypeA_fieldA }>
+            { children.b }
+          </Query>
+        </div>
+      ))
+
+      children.b = jest.fn(() => (
+        <Fragment fragment={ fragments.FieldA_on_TypeA }>
+          { childrens.nil }
+        </Fragment>
+      ))
+
+      const results = [].concat(
+        mocks.TypeA_fieldA,
+        mocks.TypeA_fieldA_fieldB,
+      )
+
+      const wrapper = mount(
+        <MockedProvider mocks={ results } removeTypename>
+          <Query query={ queries.TypeA_fieldA_fieldB }>
+            { children.a }
+          </Query>
+        </MockedProvider>
+      )
+
+      await sleep()
+      wrapper.update()
+
+      expect(children.a.mock).toHaveProperty('calls.0.0.loading', true)
+      expect(children.a.mock).toHaveProperty('calls.1.0.loading', true)
+      expect(children.a.mock).toHaveProperty('calls.2.0.loading', false)
+      expect(children.a.mock).toHaveProperty('calls.2.0.error', undefined)
+      expect(children.a.mock).toHaveProperty('calls.2.0.data.typeAResolver.fieldA', 'fieldA value')
+      expect(children.a.mock).toHaveProperty('calls.2.0.data.typeAResolver.fieldB', 'fieldB value')
+
+      expect(children.b.mock).toHaveProperty('calls.0.0.loading', true)
+      expect(children.b.mock).toHaveProperty('calls.1.0.loading', true)
+      expect(children.b.mock).toHaveProperty('calls.2.0.loading', true)
+      expect(children.b.mock).toHaveProperty('calls.2.0.error', undefined)
+      expect(children.b.mock).toHaveProperty('calls.2.0.data.typeAResolver.fieldA', 'fieldA value')
+
+      // Additional render because of the forced state rerender of the parent query
+      // componente. Data was already on store, so available since previous run.
+      expect(children.b.mock).toHaveProperty('calls.3.0.loading', false)
+      expect(children.b.mock).toHaveProperty('calls.3.0.error', undefined)
+      expect(children.b.mock).toHaveProperty('calls.3.0.data.typeAResolver.fieldA', 'fieldA value')
     })
   })
 })
