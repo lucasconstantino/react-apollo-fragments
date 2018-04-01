@@ -1,11 +1,11 @@
 import React, { PureComponent } from 'react'
 import PropTypes from 'prop-types'
 
-import { QueryContext } from './Query'
+import { QueryContext, QueryContextPropTypes } from './Query'
 
 export const ERRORS = {
-  NO_PARENT_QUERY: new Error('Fragment component must be nested in a Query or Mutation component'),
-  NO_FRAGMENT_PROP: new Error('Fragment component must be provided with a fragment prop'),
+  NO_PARENT_QUERY: new Error('Fragment component must belong to a parent Query or Mutation component'),
+  NO_FRAGMENT_PROP: new Error('Fragment component must be give a fragment prop'),
 }
 
 class QueryFragment extends PureComponent {
@@ -13,24 +13,31 @@ class QueryFragment extends PureComponent {
     id: PropTypes.string, // Optional fragment cache id.
     fragment: PropTypes.object.isRequired, // AST proptype?
     children: PropTypes.func.isRequired,
-    queryContext: PropTypes.any.isRequired,
+    queryContexts: PropTypes.arrayOf(QueryContextPropTypes).isRequired,
   }
 
   constructor (...args) {
     super(...args)
 
-    if (!this.props.queryContext) throw ERRORS.NO_PARENT_QUERY
     if (!this.props.fragment) throw ERRORS.NO_FRAGMENT_PROP
+
+    // Find belonging query context.
+    this.queryContext = this.props.queryContexts.reverse().find(
+      queryContext => queryContext.contains(this.props.fragment)
+    )
+
+    if (!this.queryContext) throw ERRORS.NO_PARENT_QUERY
 
     // Register fragment:
     // @TODO: it this fragment found on this query?
-    this.props.queryContext.registerFragment(this.props.fragment)
+    this.queryContext.registerFragment(this.props.fragment)
   }
 
   render () {
-    const { children, fragment, id, queryContext } = this.props
+    const { children, fragment, id } = this.props
 
-    const result = queryContext.getFragmentResult({ id, fragment })
+    // Generate a result object based on the query context.
+    const result = this.queryContext.getFragmentResult({ id, fragment })
 
     return children(result)
   }
@@ -38,8 +45,8 @@ class QueryFragment extends PureComponent {
 
 export const Fragment = props => (
   <QueryContext.Consumer>
-    { queryContext => (
-      <QueryFragment { ...props } queryContext={ queryContext } />
+    { queryContexts => (
+      <QueryFragment { ...props } queryContexts={ queryContexts } />
     ) }
   </QueryContext.Consumer>
 )

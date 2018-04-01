@@ -8,7 +8,13 @@ import { getFragmentName, getRequestedFragmentNames } from './utils'
 const unique = (v, i, arr) => arr.indexOf(v) === i
 
 // Create a theme context, defaulting to light theme
-export const QueryContext = createContext()
+export const QueryContext = createContext([])
+
+// Define a query context contract.
+export const QueryContextPropTypes = PropTypes.shape({
+  registerFragment: PropTypes.func.isRequired,
+  getFragmentResult: PropTypes.func.isRequired,
+}).isRequired
 
 export class Query extends PureComponent {
   static propTypes = {
@@ -23,8 +29,14 @@ export class Query extends PureComponent {
     this.state = { query: props.query }
 
     this.fragments = []
-    this.missingFragmentsNames = getRequestedFragmentNames(props.query).filter(unique)
+    this.fragmentNames = getRequestedFragmentNames(props.query).filter(unique)
+    this.missingFragmentsNames = [].concat(this.fragmentNames)
   }
+
+  /**
+   * Identifies if a fragment belongs to this query.
+   */
+  contains = fragment => this.fragmentNames.indexOf(getFragmentName(fragment)) !== -1
 
   /**
    * Register a new fragment to this query.
@@ -71,21 +83,26 @@ export class Query extends PureComponent {
     const { children, ...props } = this.props
 
     return (
-      <ApolloQuery { ...props } query={ this.state.query }>
-        { result => {
-          const context = {
-            query: this.state.query,
-            registerFragment: this.registerFragment,
-            getFragmentResult: this.getFragmentResult(result)
-          }
+      <QueryContext.Consumer>
+        { queryContexts => (
+          <ApolloQuery { ...props } query={ this.state.query }>
+            { result => {
+              const queryContext = {
+                query: this.state.query,
+                contains: this.contains,
+                registerFragment: this.registerFragment,
+                getFragmentResult: this.getFragmentResult(result)
+              }
 
-          return (
-            <QueryContext.Provider value={ context }>
-              { children(result) }
-            </QueryContext.Provider>
-          )
-        } }
-      </ApolloQuery>
+              return (
+                <QueryContext.Provider value={ queryContexts.concat(queryContext) }>
+                  { children(result) }
+                </QueryContext.Provider>
+              )
+            } }
+          </ApolloQuery>
+        ) }
+      </QueryContext.Consumer>
     )
   }
 }
