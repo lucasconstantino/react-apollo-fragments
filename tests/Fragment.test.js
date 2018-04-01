@@ -22,30 +22,46 @@ describe.only('Fragment', () => {
 
   // Testing fragment documents.
   const fragments = {
-    TypeA_fieldA: gql`fragment FieldA_on_TypeA on TypeA { fieldA }`,
-    TypeA_fieldB: gql`fragment FieldB_on_TypeA on TypeA { fieldB }`
+    // TypeA
+    FieldA_on_TypeA: gql`fragment FieldA_on_TypeA on TypeA { fieldA }`,
+    FieldB_on_TypeA: gql`fragment FieldB_on_TypeA on TypeA { fieldB }`,
+
+    // TypeB
+    FieldA_on_TypeB: gql`fragment FieldA_on_TypeB on TypeB { fieldA }`,
   }
 
   // Testing query documents.
   const queries = {
+    // TypeA
     TypeA_fieldA: gql`query TypeA_fieldA { typeAResolver { id ...FieldA_on_TypeA } }`,
     TypeA_fieldA_fieldB: gql`query TypeA_fieldA_fieldB { typeAResolver { id ...FieldA_on_TypeA ...FieldB_on_TypeA } }`,
+
+    // TypeB
+    TypeB_fieldA: gql`query TypeB_fieldA { typeBResolver { id ...FieldA_on_TypeB } }`,
   }
 
   const defragmentedQueries = {
+    // TypeA
     TypeA_fieldA: concatAST([
       queries.TypeA_fieldA,
-      fragments.TypeA_fieldA
+      fragments.FieldA_on_TypeA
     ]),
 
     TypeA_fieldA_fieldB: concatAST([
       queries.TypeA_fieldA_fieldB,
-      fragments.TypeA_fieldA,
-      fragments.TypeA_fieldB
+      fragments.FieldA_on_TypeA,
+      fragments.FieldB_on_TypeA
+    ]),
+
+    // TypeB
+    TypeB_fieldA: concatAST([
+      queries.TypeB_fieldA,
+      fragments.FieldA_on_TypeB
     ]),
   }
 
   const mocks = {
+    // TypeA
     TypeA_fieldA: [{
       request: { query: defragmentedQueries.TypeA_fieldA },
       result: { data: { typeAResolver: { id: '1', fieldA: 'fieldA value', __typename: 'TypeA' } } }
@@ -54,7 +70,13 @@ describe.only('Fragment', () => {
     TypeA_fieldA_fieldB: [{
       request: { query: defragmentedQueries.TypeA_fieldA_fieldB },
       result: { data: { typeAResolver: { id: '2', fieldA: 'fieldA value', fieldB: 'fieldB value', __typename: 'TypeA' } } }
-    }]
+    }],
+
+    // TypeB
+    TypeB_fieldA: [{
+      request: { query: defragmentedQueries.TypeB_fieldA },
+      result: { data: { typeAResolver: { id: '1', fieldA: 'fieldA value', __typename: 'TypeA' } } }
+    }],
   }
 
   const wrappedListener = jest.fn()
@@ -75,7 +97,7 @@ describe.only('Fragment', () => {
 
   it('should render children', () => {
     const wrapper = mount(wrapInQuery(
-      <Fragment fragment={ fragments.TypeA_fieldA }>{ childrens.div }</Fragment>
+      <Fragment fragment={ fragments.FieldA_on_TypeA }>{ childrens.div }</Fragment>
     ))
 
     expect(childrens.div).toHaveBeenCalled()
@@ -102,13 +124,13 @@ describe.only('Fragment', () => {
       /The prop `queryContext` is marked as required/
     ])
 
-    expect(() => mount(<Fragment fragment={ fragments.TypeA_fieldA }>{ childrens.nil }</Fragment>))
+    expect(() => mount(<Fragment fragment={ fragments.FieldA_on_TypeA }>{ childrens.nil }</Fragment>))
       .toThrow(ERRORS.NO_PARENT_QUERY)
   })
 
   it('should add a fragment to a parent query', async () => {
     const wrapper = mount(wrapInQuery(
-      <Fragment fragment={ fragments.TypeA_fieldA }>{ childrens.nil }</Fragment>
+      <Fragment fragment={ fragments.FieldA_on_TypeA }>{ childrens.nil }</Fragment>
     ))
 
     await sleep()
@@ -123,7 +145,7 @@ describe.only('Fragment', () => {
 
   it('should provide Fragment children with query result object', async () => {
     const wrapper = mount(wrapInQuery(
-      <Fragment fragment={ fragments.TypeA_fieldA }>{ childrens.nil }</Fragment>
+      <Fragment fragment={ fragments.FieldA_on_TypeA }>{ childrens.nil }</Fragment>
     ))
 
     await sleep()
@@ -162,7 +184,7 @@ describe.only('Fragment', () => {
             )
 
             return (
-              <Fragment fragment={ fragments.TypeA_fieldA } id={ id }>
+              <Fragment fragment={ fragments.FieldA_on_TypeA } id={ id }>
                 { childrens.nil }
               </Fragment>
             )
@@ -183,8 +205,8 @@ describe.only('Fragment', () => {
     it('should add multiple fragments to a parent query', async () => {
       const wrapper = mount(wrapInQuery(
         <div>
-          <Fragment fragment={ fragments.TypeA_fieldA }>{ childrens.nil }</Fragment>
-          <Fragment fragment={ fragments.TypeA_fieldB }>{ childrens.nil }</Fragment>
+          <Fragment fragment={ fragments.FieldA_on_TypeA }>{ childrens.nil }</Fragment>
+          <Fragment fragment={ fragments.FieldB_on_TypeA }>{ childrens.nil }</Fragment>
         </div>,
         'TypeA_fieldA_fieldB'
       ))
@@ -216,11 +238,11 @@ describe.only('Fragment', () => {
 
               return (
                 <div>
-                  <Fragment fragment={ fragments.TypeA_fieldA } id={ id }>
+                  <Fragment fragment={ fragments.FieldA_on_TypeA } id={ id }>
                     { childrens.a }
                   </Fragment>
 
-                  <Fragment fragment={ fragments.TypeA_fieldB } id={ id }>
+                  <Fragment fragment={ fragments.FieldB_on_TypeA } id={ id }>
                     { childrens.b }
                   </Fragment>
                 </div>
