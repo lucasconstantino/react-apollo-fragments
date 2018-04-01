@@ -19,33 +19,39 @@ class QueryFragment extends PureComponent {
   constructor (...args) {
     super(...args)
 
+    // Ensure minimal props.
     if (!this.props.fragment) throw ERRORS.NO_FRAGMENT_PROP
 
-    // Find belonging query context.
-    const queryContext = this.getQueryContext()
+    // Register fragment on the query.
+    this.getQueryContext().registerFragment(this.props.fragment)
+  }
+
+  /**
+   * Find the queryContext this fragment belongs to.
+   */
+  getQueryContext = () => {
+    const queryContext = this.props.queryContexts.reverse().find(
+      queryContext => queryContext.contains(this.props.fragment)
+    )
 
     if (!queryContext) throw ERRORS.NO_PARENT_QUERY
 
-    // Register fragment:
-    // @TODO: it this fragment found on this query?
-    queryContext.registerFragment(this.props.fragment)
+    return queryContext
   }
-
-  getQueryContext = () => this.props.queryContexts.reverse().find(
-    queryContext => queryContext.contains(this.props.fragment)
-  )
 
   render () {
     const { children, fragment, id } = this.props
-    const queryContext = this.getQueryContext()
 
-    // Generate a result object based on the query context.
-    const result = queryContext.getFragmentResult({ id, fragment })
+    // Inject results relative to this fragment.
+    const result = this.getQueryContext().getFragmentResult({ id, fragment })
 
     return children(result)
   }
 }
 
+/**
+ * Export a queryContext connected version of Fragment.
+ */
 export const Fragment = props => (
   <QueryContext.Consumer>
     { queryContexts => (
