@@ -14,7 +14,7 @@ export const QueryContext = createContext([])
 export const QueryContextPropTypes = PropTypes.shape({
   registerFragment: PropTypes.func.isRequired,
   getFragmentResult: PropTypes.func.isRequired,
-}).isRequired
+})
 
 export class Query extends PureComponent {
   static propTypes = {
