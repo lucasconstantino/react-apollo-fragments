@@ -13,7 +13,7 @@ import {
 
 export const ERRORS = {
   NO_PARENT_QUERY: new Error('Fragment component must belong to a parent Query or Mutation component'),
-  NO_FRAGMENT_PROP: new Error('Fragment component must be give a fragment prop'),
+  NO_FRAGMENT_PROP: new Error('Fragment component must be given a fragment prop'),
 }
 
 class QueryFragment extends PureComponent {
