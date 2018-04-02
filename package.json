@@ -1,7 +1,7 @@
 {
   "name": "react-apollo-fragments",
   "version": "0.2.0",
-  "description": "Automatic query defragmentation based on React trees.",
+  "description": "True Fragment component for react-apollo.",
   "main": "lib/index.js",
   "directories": {
     "test": "test"
