@@ -6,6 +6,18 @@ import { prefixFragmentArguments } from 'react-apollo-fragments'
 describe('prefixFragmentArguments', () => {
   beforeEach(gql.resetCaches)
 
+  it('should do nothing on non-argumented fragments', () => {
+    const fragment = gql`
+      fragment Fragment on Type {
+        field
+      }
+    `
+
+    const result = print(prefixFragmentArguments(fragment))
+
+    expect(result).toBe(print(fragment))
+  })
+
   it('should rename fragment arguments on AST', () => {
     const fragment = gql`
       fragment Fragment ($argument: String!) on Type {
