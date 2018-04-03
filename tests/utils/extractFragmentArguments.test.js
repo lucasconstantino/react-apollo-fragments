@@ -86,8 +86,6 @@ describe('extractFragmentArguments', () => {
     const save = []
     extractFragmentArguments(fragment, save)
 
-    console.log(JSON.stringify(save, null, 2))
-
     expect(save).toEqual(
       fragment.definitions[0].variableDefinitions.concat(
         fragment.definitions[1].variableDefinitions
