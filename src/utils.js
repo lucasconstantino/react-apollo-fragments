@@ -55,9 +55,56 @@ export const extractFragmentArguments = (ast, save = []) => visit(ast, {
   }
 })
 
+/**
+ * Given an AST, rename fragment arguments to prefix with fragment name.
+ * Also rename arguments usage on fields.
+ *
+ * @param {Object} ast GraphQL AST.
+ * @return {AST} the provided AST with arguments renamed.
+ */
+export const prefixFragmentArguments = ast => {
+  const renameMap = {}
 
+  // FragmentDefinition visitor.
+  const FragmentDefinition = ({ variableDefinitions, ...node }, key, parent, path) => {
+    const map = {}
+    const mapKey = path.join('.')
+
+    const fragmentName = node.name.value
+
+    // Prefix variable definitions with fragment name.
+    variableDefinitions = variableDefinitions.map(def => {
+      const variableName = def.variable.name.value
+      // Rename and add to map.
+      map[variableName] = def.variable.name.value = `${fragmentName}__${variableName}`
+      return def
+    })
+
+    // Save rename map.
+    renameMap[mapKey] = map
+
+    return { ...node, variableDefinitions }
+  }
+
+  // Argument visitor.
+  const Argument = (node, key, parent, path) => {
+    const variableName = node.value.name.value
+    const pathString = path.join('.')
+
+    // Find a rename map this argument is scoped into, if any.
+    const mapKey = Object.keys(renameMap).find(
+      key => pathString.indexOf(key) === 0
+    )
+
+    // Necessary rename found?
+    if (mapKey && renameMap[mapKey][variableName]) {
+      node.value.name.value = renameMap[mapKey][variableName]
+      return node
     }
   }
+
+  return visit(ast, { FragmentDefinition, Argument })
+}
 
 /**
  * Given an AST, get the name of all requested fragments.
