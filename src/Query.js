@@ -7,6 +7,7 @@ import {
   getFragmentName,
   getFragmentNames,
   getRequestedFragmentNames,
+  addFragmentArguments,
   unique
 } from './utils'
 
@@ -34,6 +35,8 @@ export class Query extends PureComponent {
     const fragmentNames = getRequestedFragmentNames(props.query).filter(unique)
 
     this.fragments = []
+    this.fragmentArguments = []
+
     this.fragmentNames = [].concat(fragmentNames) // clone array.
     this.missingFragmentsNames = [].concat(fragmentNames) // clone array.
   }
@@ -51,7 +54,7 @@ export class Query extends PureComponent {
    * @TODO: avoid performing setState for each found fragment.
    * @TODO: only register fragments contained in this query.
    */
-  registerFragment = fragment => {
+  registerFragment = (fragment, args = []) => {
     // Early ignore when no more fragment is missing.
     if (this.missingFragmentsNames.length) {
       const names = getFragmentNames(fragment)
@@ -65,10 +68,16 @@ export class Query extends PureComponent {
         indexes.forEach(index => this.missingFragmentsNames.splice(index, 1))
         // Add fragment to stack.
         this.fragments.push(fragment)
+        this.fragmentArguments.push(...args)
 
         // When no more missing fragments, alter parent query.
         if (!this.missingFragmentsNames.length) {
-          this.setState({ query: concatAST([this.state.query, ...this.fragments]) })
+          this.setState({
+            query: addFragmentArguments(
+              concatAST([this.state.query, ...this.fragments]),
+              this.fragmentArguments
+            )
+          })
         }
       }
     }

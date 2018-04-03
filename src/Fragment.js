@@ -1,15 +1,23 @@
 import React, { PureComponent } from 'react'
 import PropTypes from 'prop-types'
 import { concatAST } from 'graphql'
+import { enableExperimentalFragmentVariables } from 'graphql-tag'
 
 import { QueryContext, QueryContextPropType } from './Query'
 
 import {
   getFragmentName,
   getFragmentNames,
+  prefixFragmentArguments,
+  extractFragmentArguments,
   getRequestedFragmentNames,
   unique
 } from './utils'
+
+// @see: https://github.com/apollographql/graphql-tag/pull/167
+if (enableExperimentalFragmentVariables) {
+  enableExperimentalFragmentVariables()
+}
 
 export const ERRORS = {
   NO_PARENT_QUERY: new Error('Fragment component must belong to a parent Query or Mutation component'),
@@ -27,7 +35,14 @@ class QueryFragment extends PureComponent {
   constructor (...args) {
     super(...args)
 
+    this.arguments = []
+    this.argumentsNamesMap = {}
+
     this.fragment = this.props.fragment
+
+    // Normalize fragment arguments definition.
+    this.fragment = prefixFragmentArguments(this.fragment, this.argumentsNamesMap)
+    this.fragment = extractFragmentArguments(this.fragment, this.arguments)
 
     // Ensure minimal props.
     if (!this.fragment) throw ERRORS.NO_FRAGMENT_PROP
@@ -40,7 +55,10 @@ class QueryFragment extends PureComponent {
 
     // Register fragment on the query when has no missing fragments.
     if (!this.missingFragmentsNames.length) {
-      this.getQueryContext().registerFragment(this.fragment)
+      this.getQueryContext().registerFragment(
+        this.fragment,
+        this.arguments,
+      )
     }
   }
 
@@ -70,7 +88,7 @@ class QueryFragment extends PureComponent {
    * @TODO: avoid performing setState for each found fragment.
    * @TODO: only register fragments contained in this query.
    */
-  registerFragment = fragment => {
+  registerFragment = (fragment, args = []) => {
     // Early ignore when no more fragment is missing.
     if (this.missingFragmentsNames.length) {
       const names = getFragmentNames(fragment)
@@ -85,10 +103,16 @@ class QueryFragment extends PureComponent {
         // Add fragment to stack.
         this.fragments.push(fragment)
 
+        // Save child fragment's arguments.
+        this.arguments = this.arguments.concat(args)
+
         // When no more missing fragments, alter parent query.
         if (!this.missingFragmentsNames.length) {
           this.fragment = concatAST([this.fragment, ...this.fragments])
-          this.getQueryContext().registerFragment(this.fragment)
+          this.getQueryContext().registerFragment(
+            this.fragment,
+            this.arguments
+          )
         }
       }
     }
