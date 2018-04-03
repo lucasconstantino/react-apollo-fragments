@@ -4,6 +4,8 @@ import { print } from 'graphql/language/printer'
 import { prefixFragmentArguments } from 'react-apollo-fragments'
 
 describe('prefixFragmentArguments', () => {
+  beforeEach(gql.resetCaches)
+
   it('should rename fragment arguments on AST', () => {
     const fragment = gql`
       fragment Fragment ($argument: String!) on Type {
