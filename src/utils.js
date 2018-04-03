@@ -117,7 +117,7 @@ export const getRequestedFragmentNames = ast => {
 
   visit(ast, {
     // FragmentSpread:
-    Name: ({ value: fragment }, key, parent, path, ancestors) => {
+    Name: ({ value: fragment }, key, parent) => {
       if (parent.kind === 'FragmentSpread') {
         fragmentNames.push(fragment)
       }
