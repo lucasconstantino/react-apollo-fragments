@@ -1,6 +1,12 @@
 import { visit, BREAK } from 'graphql'
+import { print } from 'graphql/language/printer'
 
 export const unique = (v, i, arr) => arr.indexOf(v) === i
+
+export const UTILS_ERRORS = {
+  DUPLICATED_ARGUMENT: (name, typeA, typeB) =>
+    new Error(`Tried to add argument "${name}" of type "${typeA}" to a document which already contains it with type ${typeB}.`),
+}
 
 /**
  * Given an AST, get the first available fragment name.
@@ -119,6 +125,36 @@ export const prefixFragmentArguments = (ast, save) => {
 
   return result
 }
+
+/**
+ * Given an AST and an arguments array,
+ * insert arguments to the operation arguments.
+ *
+ * @param {Object} ast GraphQL AST.
+ * @param {Array} args array of query argument definitions.
+ * @return {AST} the provided AST with additional arguments.
+ */
+export const addFragmentArguments = (ast, args = []) => visit(ast, {
+  OperationDefinition: (node) => {
+    const currentArguments = {}
+    node.variableDefinitions.forEach(argument => {
+      currentArguments[argument.variable.name.value] = print(argument.type)
+    })
+
+    args.forEach(argument => {
+      const name = argument.variable.name.value
+      const type = print(argument.type)
+
+      if (currentArguments[name] && currentArguments[name] !== type) {
+        throw UTILS_ERRORS.DUPLICATED_ARGUMENT(name, type, currentArguments[name])
+      }
+
+      currentArguments[name] = type
+      node.variableDefinitions.push(argument)
+    })
+    return node
+  }
+})
 
 /**
  * Given an AST, get the name of all requested fragments.
