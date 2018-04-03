@@ -846,7 +846,7 @@ describe('Fragment', () => {
       expect(childrens.nil.mock).toHaveProperty('calls.2.0.queryData.typeResolver.field', 'value')
     })
 
-    it.only('should refetch on hoisted variables values change', async () => {
+    it('should refetch on hoisted variables values change', async () => {
       const query = gql`
         query {
           typeResolver {
