@@ -845,5 +845,92 @@ describe('Fragment', () => {
       expect(childrens.nil.mock).toHaveProperty('calls.2.0.error', undefined)
       expect(childrens.nil.mock).toHaveProperty('calls.2.0.queryData.typeResolver.field', 'value')
     })
+
+    it.only('should refetch on hoisted variables values change', async () => {
+      const query = gql`
+        query {
+          typeResolver {
+            ...A
+          }
+        }
+      `
+
+      const fragment = gql`
+        fragment A ($argument: String!) on Type {
+          field (argument: $argument)
+        }
+      `
+
+      const defragmentedQuery = gql`
+        query ($A__argument: String!) {
+          typeResolver {
+            ...A
+          }
+        }
+
+        fragment A on Type {
+          field (argument: $A__argument)
+        }
+      `
+
+      const mocks = [
+        {
+          request: { query: defragmentedQuery, variables: { A__argument: 'initial' } },
+          result: { data: { typeResolver: { field: 'value', __typename: 'Type' } } }
+        },
+        {
+          request: { query: defragmentedQuery, variables: { A__argument: 'updated' } },
+          result: { data: { typeResolver: { field: 'new value', __typename: 'Type' } } }
+        }
+      ]
+
+      class StateChanger extends React.Component {
+        constructor (props) {
+          super(props)
+          this.state = { argument: 'initial' }
+        }
+
+        render () {
+          return (
+            <MockedProvider mocks={ mocks }>
+              <Query query={ query }>
+                { () => (
+                  <Fragment fragment={ fragment } variables={ this.state }>
+                    { childrens.nil }
+                  </Fragment>
+                ) }
+              </Query>
+            </MockedProvider>
+          )
+        }
+      }
+
+      const wrapper = mount(<StateChanger />)
+
+      await sleep()
+      wrapper.update()
+
+      expect(childrens.nil.mock.calls.length).toBe(3)
+      expect(childrens.nil.mock).toHaveProperty('calls.0.0.loading', true)
+      expect(childrens.nil.mock).toHaveProperty('calls.1.0.loading', true)
+      expect(childrens.nil.mock).toHaveProperty('calls.2.0.loading', false)
+      expect(childrens.nil.mock).toHaveProperty('calls.2.0.error', undefined)
+      expect(childrens.nil.mock).toHaveProperty('calls.2.0.queryData.typeResolver.field', 'value')
+
+      wrapper.setState({ argument: 'updated' })
+
+      expect(childrens.nil.mock.calls.length).toBe(5)
+      expect(childrens.nil.mock).toHaveProperty('calls.3.0.loading', false)
+      expect(childrens.nil.mock).toHaveProperty('calls.4.0.loading', true)
+      expect(childrens.nil.mock).toHaveProperty('calls.4.0.error', undefined)
+
+      await sleep()
+      wrapper.update()
+
+      expect(childrens.nil.mock.calls.length).toBe(6)
+      expect(childrens.nil.mock).toHaveProperty('calls.5.0.loading', false)
+      expect(childrens.nil.mock).toHaveProperty('calls.5.0.error', undefined)
+      expect(childrens.nil.mock).toHaveProperty('calls.5.0.queryData.typeResolver.field', 'new value')
+    })
   })
 })
