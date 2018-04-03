@@ -41,25 +41,23 @@ export const getFragmentNames = ast => {
 }
 
 /**
- * Given an AST, extract argument information based on the @arguments directive.
+ * Given a fragment AST, extract arguments.
  *
  * @param {Object} ast GraphQL AST.
  * @param {Array} [save] array where to save extracted arguments information.
- * @return {AST} the provided AST without arguments directive.
+ * @return {AST} the provided AST without arguments definitions.
  */
 export const extractFragmentArguments = (ast, save = []) => visit(ast, {
-  Directive: (node, key, parent, path, ancestors) => {
-    const { kind, name: { value: fragment } } = ancestors[ancestors.length - 1]
-
-    if (node.name.value === 'arguments' && kind === 'FragmentDefinition') {
-      node.arguments.forEach(({ name: { value: name }, value: { value } }) => {
-        save.push({ name, fragment, value })
-      })
-
-      return null
-    }
+  FragmentDefinition: node => {
+    const { variableDefinitions, ...result } = node
+    save.push(...variableDefinitions)
+    return result
   }
 })
+
+
+    }
+  }
 
 /**
  * Given an AST, get the name of all requested fragments.
