@@ -791,5 +791,59 @@ describe('Fragment', () => {
       expect(childrens.nil.mock).toHaveProperty('calls.2.0.error', undefined)
       expect(childrens.nil.mock).toHaveProperty('calls.2.0.queryData.typeResolver.field', 'value')
     })
+
+    it('should hoist variables values from Fragment to Query component', async () => {
+      const query = gql`
+        query {
+          typeResolver {
+            ...A
+          }
+        }
+      `
+
+      const fragment = gql`
+        fragment A ($argument: String!) on Type {
+          field (argument: $argument)
+        }
+      `
+
+      const defragmentedQuery = gql`
+        query ($A__argument: String!) {
+          typeResolver {
+            ...A
+          }
+        }
+
+        fragment A on Type {
+          field (argument: $A__argument)
+        }
+      `
+
+      const mock = {
+        request: { query: defragmentedQuery, variables: { A__argument: 'value' } },
+        result: { data: { typeResolver: { field: 'value', __typename: 'Type' } } }
+      }
+
+      const wrapper = mount(
+        <MockedProvider mocks={ [mock] }>
+          <Query query={ query }>
+            { () => (
+              <Fragment fragment={ fragment } variables={ { argument: 'value' } }>
+                { childrens.nil }
+              </Fragment>
+            ) }
+          </Query>
+        </MockedProvider>
+      )
+
+      await sleep()
+      wrapper.update()
+
+      expect(childrens.nil.mock).toHaveProperty('calls.0.0.loading', true)
+      expect(childrens.nil.mock).toHaveProperty('calls.1.0.loading', true)
+      expect(childrens.nil.mock).toHaveProperty('calls.2.0.loading', false)
+      expect(childrens.nil.mock).toHaveProperty('calls.2.0.error', undefined)
+      expect(childrens.nil.mock).toHaveProperty('calls.2.0.queryData.typeResolver.field', 'value')
+    })
   })
 })
