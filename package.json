@@ -43,7 +43,7 @@
     "eslint-plugin-standard": "^3.0.1",
     "function.prototype.name": "^1.1.0",
     "graphql": "^0.13.2",
-    "graphql-tag": "^2.8.0",
+    "graphql-tag": "file:./local_modules/graphql-tag/",
     "graphql-tools": "^2.23.1",
     "has": "^1.0.1",
     "is-boolean-object": "^1.0.0",
@@ -78,7 +78,8 @@
   "jest": {
     "setupFiles": [
       "raf/polyfill",
-      "<rootDir>/enzyme.setup.js"
+      "<rootDir>/enzyme.setup.js",
+      "<rootDir>/jest.setup.js"
     ],
     "moduleNameMapper": {
       "^react-apollo-fragments(.*)$": "<rootDir>/src$1",
