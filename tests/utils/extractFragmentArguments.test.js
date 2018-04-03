@@ -4,6 +4,18 @@ import { print } from 'graphql/language/printer'
 import { extractFragmentArguments } from 'react-apollo-fragments'
 
 describe('extractFragmentArguments', () => {
+  it('should do nothing on non-argumented fragments', () => {
+    const fragment = gql`
+      fragment Fragment on Type {
+        field
+      }
+    `
+
+    const result = print(extractFragmentArguments(fragment))
+
+    expect(result).toBe(print(fragment))
+  })
+
   it('should remove fragment arguments from AST', () => {
     const fragment = gql`
       fragment Fragment ($argument: String!) on Type {
