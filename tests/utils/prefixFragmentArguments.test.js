@@ -78,4 +78,36 @@ describe('prefixFragmentArguments', () => {
     expect(result).toContain('fragment B($B__argument: String!)')
     expect(result).toContain('(usage: $B__argument)')
   })
+
+  describe('save', () => {
+    it('should save renaming map to provided object', () => {
+      const fragment = gql`
+        fragment Fragment ($argument: String!) on Type {
+          field
+        }
+      `
+
+      const map = {}
+      prefixFragmentArguments(fragment, map)
+
+      expect(map).toEqual({ 'Fragment__argument': 'argument' })
+    })
+
+    it('should save multiple fragments renaming map to provided object', () => {
+      const fragment = gql`
+        fragment A ($a: String!) on Type {
+          field
+        }
+
+        fragment B ($b: String!) on Type {
+          field
+        }
+      `
+
+      const map = {}
+      prefixFragmentArguments(fragment, map)
+
+      expect(map).toEqual({ 'A__a': 'a', 'B__b': 'b' })
+    })
+  })
 })

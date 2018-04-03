@@ -60,9 +60,10 @@ export const extractFragmentArguments = (ast, save = []) => visit(ast, {
  * Also rename arguments usage on fields.
  *
  * @param {Object} ast GraphQL AST.
+ * @param {Object} [save] object to save the map at.
  * @return {AST} the provided AST with arguments renamed.
  */
-export const prefixFragmentArguments = ast => {
+export const prefixFragmentArguments = (ast, save) => {
   const renameMap = {}
 
   // FragmentDefinition visitor.
@@ -103,7 +104,20 @@ export const prefixFragmentArguments = ast => {
     }
   }
 
-  return visit(ast, { FragmentDefinition, Argument })
+  const result = visit(ast, { FragmentDefinition, Argument })
+
+  // Save the map.
+  if (save) {
+    Object.keys(renameMap).forEach(
+      key => Object.keys(renameMap[key]).forEach(
+        name => {
+          save[renameMap[key][name]] = name
+        }
+      )
+    )
+  }
+
+  return result
 }
 
 /**
