@@ -25,17 +25,22 @@ export class Query extends PureComponent {
     skip: PropTypes.bool,
     query: PropTypes.object.isRequired, // AST proptype?
     children: PropTypes.func.isRequired,
+    variables: PropTypes.object,
   }
 
   constructor (props) {
     super(props)
 
-    this.state = { query: props.query }
+    this.state = {
+      query: props.query,
+      fragmentVariables: {}
+    }
 
     const fragmentNames = getRequestedFragmentNames(props.query).filter(unique)
 
     this.fragments = []
     this.fragmentArguments = []
+    this.fragmentVariables = {}
 
     this.fragmentNames = [].concat(fragmentNames) // clone array.
     this.missingFragmentsNames = [].concat(fragmentNames) // clone array.
@@ -47,6 +52,18 @@ export class Query extends PureComponent {
    * @TODO: should memoize this.
    */
   contains = fragment => this.fragmentNames.indexOf(getFragmentName(fragment)) !== -1
+
+  /**
+   * Register hoisted variables.
+   */
+  receiveVariables = variables => {
+    this.setState({
+      fragmentVariables: {
+        ...this.state.fragmentVariables,
+        ...variables
+      }
+    })
+  }
 
   /**
    * Register a new fragment to this query.
@@ -100,17 +117,21 @@ export class Query extends PureComponent {
   }
 
   render () {
-    const { children, ...props } = this.props
+    const { children, variables, ...props } = this.props
+    const { query, fragmentVariables } = this.state
+
+    const resultingVariables = { ...variables, ...fragmentVariables }
 
     return (
       <QueryContext.Consumer>
         { queryContexts => (
-          <ApolloQuery { ...props } query={ this.state.query }>
+          <ApolloQuery { ...props } variables={ resultingVariables } query={ query }>
             { result => {
               const queryContext = {
-                query: this.state.query,
+                query,
                 contains: this.contains,
                 registerFragment: this.registerFragment,
+                receiveVariables: this.receiveVariables,
                 getFragmentResult: this.getFragmentResult(result)
               }
 

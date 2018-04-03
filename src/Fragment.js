@@ -30,6 +30,7 @@ class QueryFragment extends PureComponent {
     fragment: PropTypes.object.isRequired, // AST proptype?
     children: PropTypes.func.isRequired,
     queryContexts: PropTypes.arrayOf(QueryContextPropType).isRequired,
+    variables: PropTypes.object,
   }
 
   constructor (...args) {
@@ -60,10 +61,32 @@ class QueryFragment extends PureComponent {
         this.arguments,
       )
     }
+
+    if (this.props.variables) {
+      this.hoistVariables(this.props.variables)
+    }
+  }
+
+  /**
+   * Hoist variable values to closest query context.
+   */
+  hoistVariables = variables => {
+    const renamedVariables = []
+
+    Object.keys(this.argumentsNamesMap).forEach(
+      renamed => {
+        if (variables[this.argumentsNamesMap[renamed]]) {
+          renamedVariables[renamed] = variables[this.argumentsNamesMap[renamed]]
+        }
+      }
+    )
+
+    this.getQueryContext().receiveVariables(renamedVariables)
   }
 
   /**
    * Find the queryContext this fragment belongs to.
+   * @TODO: could this be memoized?
    */
   getQueryContext = () => {
     const queryContext = this.props.queryContexts.reverse().find(
