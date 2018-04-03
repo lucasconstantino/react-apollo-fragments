@@ -151,6 +151,7 @@ const wrapInQuery = (element, queryName = 'TypeA_fieldA') => (
 )
 
 describe('Fragment', () => {
+  beforeEach(originalGql.resetCaches)
   beforeEach(jest.clearAllMocks)
   beforeEach(console.cleanSuppressors)
 
@@ -733,6 +734,62 @@ describe('Fragment', () => {
         expect(childrens.nil.mock).toHaveProperty('calls.2.0.loading', false)
         expect(childrens.nil.mock).toHaveProperty('calls.2.0.data.fieldA', 'fieldA value')
       })
+    })
+  })
+
+  describe('fragment arguments', () => {
+    it('should hoist arguments from fragment to query', async () => {
+      const query = gql`
+        query {
+          typeResolver {
+            ...A
+          }
+        }
+      `
+
+      const fragment = gql`
+        fragment A ($argument: String!) on Type {
+          field (argument: $argument)
+        }
+      `
+
+      const defragmentedQuery = gql`
+        query ($A__argument: String!) {
+          typeResolver {
+            ...A
+          }
+        }
+
+        fragment A on Type {
+          field (argument: $A__argument)
+        }
+      `
+
+      const mock = {
+        request: { query: defragmentedQuery },
+        result: { data: { typeResolver: { field: 'value', __typename: 'Type' } } }
+      }
+
+      const wrapper = mount(
+        <MockedProvider mocks={ [mock] }>
+          <Query query={ query }>
+            { () => (
+              <Fragment fragment={ fragment }>
+                { childrens.nil }
+              </Fragment>
+            ) }
+          </Query>
+        </MockedProvider>
+      )
+
+      await sleep()
+      wrapper.update()
+
+      expect(childrens.nil.mock).toHaveProperty('calls.0.0.loading', true)
+      expect(childrens.nil.mock).toHaveProperty('calls.1.0.loading', true)
+      expect(childrens.nil.mock).toHaveProperty('calls.2.0.loading', false)
+      expect(childrens.nil.mock).toHaveProperty('calls.2.0.error', undefined)
+      expect(childrens.nil.mock).toHaveProperty('calls.2.0.queryData.typeResolver.field', 'value')
     })
   })
 })
