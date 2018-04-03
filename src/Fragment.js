@@ -2,6 +2,7 @@ import React, { PureComponent } from 'react'
 import PropTypes from 'prop-types'
 import { concatAST } from 'graphql'
 import { enableExperimentalFragmentVariables } from 'graphql-tag'
+import equals from 'shallowequal'
 
 import { QueryContext, QueryContextPropType } from './Query'
 
@@ -64,6 +65,12 @@ class QueryFragment extends PureComponent {
 
     if (this.props.variables) {
       this.hoistVariables(this.props.variables)
+    }
+  }
+
+  componentWillReceiveProps ({ variables }) {
+    if (!equals(this.props.variables, variables)) {
+      this.hoistVariables(variables)
     }
   }
 
