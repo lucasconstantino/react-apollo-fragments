@@ -87,7 +87,9 @@
       "^(enzyme.*)$": "<rootDir>/local_modules/enzyme/packages/$1/src/index"
     }
   },
-  "dependencies": {},
+  "dependencies": {
+    "shallowequal": "^1.0.2"
+  },
   "peerDependencies": {
     "graphql": "^0.13.2",
     "prop-types": "^15.6.1",
