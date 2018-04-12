@@ -4,6 +4,10 @@ import { concatAST } from 'graphql'
 import { default as originalGql } from 'graphql-tag'
 import { addTypenameToDocument } from 'apollo-utilities'
 import console from 'console-suppress'
+import { makeExecutableSchema } from 'graphql-tools'
+import { ApolloClient } from 'apollo-client'
+import { InMemoryCache } from 'apollo-cache-inmemory'
+import { SchemaLink } from 'apollo-link-schema'
 
 import { MockedProvider } from '../local_modules/react-apollo/test-utils'
 
@@ -265,7 +269,117 @@ describe('Fragment', () => {
     expect(childrens.nil.mock).toHaveProperty('calls.2.0.data.fieldA', 'fieldA value')
   })
 
-  it('should provide Fragment children with fragment optimistic result data')
+  it('should provide Fragment children with previously cached query data', async () => {
+    const typeDefs = `
+      type TypeA {
+        id: String
+        fieldA: String
+      }
+
+      type Query {
+        typeAResolver: TypeA
+      }
+    `
+
+    const resolvers = {
+      Query: {
+        typeAResolver: () => mocks.TypeA_fieldA[0].result.data.typeAResolver
+      }
+    }
+
+    const schema = makeExecutableSchema({ typeDefs, resolvers })
+    // addMockFunctionsToSchema({ schema })
+
+    const client = new ApolloClient({
+      ssr: true,
+      cache: new InMemoryCache(),
+      link: new SchemaLink({ schema })
+    })
+
+    await client.query({
+      query: defragmentedQueries.TypeA_fieldA,
+    })
+
+    const wrapper = mount(
+      <MockedProvider mocks={ mocks.TypeA_fieldA } client={ client } removeTypename>
+        <Query query={ queries.TypeA_fieldA }>
+          { ({ data, client }) => {
+            const id = data.typeAResolver && client.cache.config.dataIdFromObject(
+              data.typeAResolver
+            )
+
+            return (
+              <Fragment fragment={ fragments.FieldA_on_TypeA } id={ id }>
+                { childrens.nil }
+              </Fragment>
+            )
+          } }
+        </Query>
+      </MockedProvider>
+    )
+
+    await sleep()
+    wrapper.update()
+
+    expect(childrens.nil.mock).toHaveProperty('calls.1.0.loading', false)
+    expect(childrens.nil.mock).toHaveProperty('calls.1.0.data.fieldA', 'fieldA value')
+  })
+
+  it('should provide Fragment children with previously cached fragment data', async () => {
+    const typeDefs = `
+      type TypeA {
+        id: String
+        fieldA: String
+      }
+
+      type Query {
+        typeAResolver: TypeA
+        anotherTypeAResolver: TypeA
+      }
+    `
+
+    const resolvers = {
+      Query: {
+        typeAResolver: () => mocks.TypeA_fieldA[0].result.data.typeAResolver,
+        anotherTypeAResolver: () => mocks.TypeA_fieldA[0].result.data.typeAResolver,
+      }
+    }
+
+    const schema = makeExecutableSchema({ typeDefs, resolvers })
+    // addMockFunctionsToSchema({ schema })
+
+    const client = new ApolloClient({
+      ssr: true,
+      cache: new InMemoryCache(),
+      link: new SchemaLink({ schema })
+    })
+
+    await client.query({
+      query: gql`query { anotherTypeAResolver { id fieldA } }`,
+    })
+
+    const wrapper = mount(
+      <MockedProvider mocks={ mocks.TypeA_fieldA } client={ client } removeTypename>
+        <Query query={ queries.TypeA_fieldA }>
+          { () => (
+            // Fixed id.
+            <Fragment fragment={ fragments.FieldA_on_TypeA } id='TypeA:1'>
+              { childrens.nil }
+            </Fragment>
+          ) }
+        </Query>
+      </MockedProvider>
+    )
+
+    await sleep()
+    wrapper.update()
+
+    expect(childrens.nil.mock).toHaveProperty('calls.1.0.loading', true)
+    expect(childrens.nil.mock).toHaveProperty('calls.1.0.data.fieldA', 'fieldA value')
+
+    expect(childrens.nil.mock).toHaveProperty('calls.2.0.loading', false)
+    expect(childrens.nil.mock).toHaveProperty('calls.2.0.data.fieldA', 'fieldA value')
+  })
 
   describe('multiple fragments', () => {
     it('should add multiple fragments to a parent query', async () => {

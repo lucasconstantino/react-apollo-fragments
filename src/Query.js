@@ -31,12 +31,13 @@ export class Query extends PureComponent {
   constructor (props) {
     super(props)
 
-    this.state = {
-      query: props.query,
-      fragmentVariables: {}
-    }
-
     const fragmentNames = getRequestedFragmentNames(props.query).filter(unique)
+
+    this.state = {
+      ready: fragmentNames.length === 0,
+      query: props.query,
+      fragmentVariables: {},
+    }
 
     this.fragments = []
     this.fragmentArguments = []
@@ -44,6 +45,14 @@ export class Query extends PureComponent {
 
     this.fragmentNames = [].concat(fragmentNames) // clone array.
     this.missingFragmentsNames = [].concat(fragmentNames) // clone array.
+  }
+
+  componentDidMount () {
+    if (!this.state.ready) {
+      this.setState({
+        ready: true
+      })
+    }
   }
 
   /**
@@ -90,6 +99,7 @@ export class Query extends PureComponent {
         // When no more missing fragments, alter parent query.
         if (!this.missingFragmentsNames.length) {
           this.setState({
+            ready: true,
             query: addFragmentArguments(
               concatAST([this.state.query, ...this.fragments]),
               this.fragmentArguments
@@ -121,11 +131,12 @@ export class Query extends PureComponent {
     const { query, fragmentVariables } = this.state
 
     const resultingVariables = { ...variables, ...fragmentVariables }
+    const skip = props.skip || !this.state.ready
 
     return (
       <QueryContext.Consumer>
         { queryContexts => (
-          <ApolloQuery { ...props } variables={ resultingVariables } query={ query }>
+          <ApolloQuery { ...props } variables={ resultingVariables } query={ query } skip={ skip }>
             { result => {
               const queryContext = {
                 query,
