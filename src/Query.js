@@ -17,7 +17,6 @@ export const QueryContext = createContext([])
 // Define a query context contract.
 export const QueryContextPropType = PropTypes.shape({
   registerFragment: PropTypes.func.isRequired,
-  getFragmentResult: PropTypes.func.isRequired,
 })
 
 export class Query extends PureComponent {
@@ -110,22 +109,6 @@ export class Query extends PureComponent {
     }
   }
 
-  /**
-   * Get the result for a given fragment.
-   */
-  getFragmentResult = result => ({ id, fragment, optimistic }) => {
-    const { data: queryData, client } = result
-
-    const fragmentName = getFragmentName(fragment)
-
-    // Fragment data can only be fetched when id is provided.
-    const data = (id && client.readFragment({ id, fragment, fragmentName }, optimistic)) || {}
-
-    // Provide query resulting data on the queryData prop.
-    // Provide fragment specific data on the data prop.
-    return { ...result, queryData, data }
-  }
-
   render () {
     const { children, variables, ...props } = this.props
     const { query, fragmentVariables } = this.state
@@ -140,10 +123,10 @@ export class Query extends PureComponent {
             { result => {
               const queryContext = {
                 query,
+                result,
                 contains: this.contains,
                 registerFragment: this.registerFragment,
                 receiveVariables: this.receiveVariables,
-                getFragmentResult: this.getFragmentResult(result)
               }
 
               return (

@@ -188,8 +188,11 @@ describe('Fragment', () => {
       /The prop `queryContext` is marked as required/
     ])
 
-    expect(() => mount(<Fragment fragment={ fragments.FieldA_on_TypeA }>{ childrens.nil }</Fragment>))
-      .toThrow(ERRORS.NO_PARENT_QUERY)
+    expect(() => mount((
+      <MockedProvider>
+        <Fragment fragment={ fragments.FieldA_on_TypeA }>{ childrens.nil }</Fragment>
+      </MockedProvider>
+    ))).toThrow(ERRORS.NO_PARENT_QUERY)
   })
 
   it('should add a fragment to a parent query', async () => {
@@ -301,7 +304,7 @@ describe('Fragment', () => {
     })
 
     const wrapper = mount(
-      <MockedProvider mocks={ mocks.TypeA_fieldA } client={ client } removeTypename>
+      <MockedProvider client={ client } removeTypename>
         <Query query={ queries.TypeA_fieldA }>
           { ({ data, client }) => {
             const id = data.typeAResolver && client.cache.config.dataIdFromObject(
@@ -359,7 +362,7 @@ describe('Fragment', () => {
     })
 
     const wrapper = mount(
-      <MockedProvider mocks={ mocks.TypeA_fieldA } client={ client } removeTypename>
+      <MockedProvider client={ client } removeTypename>
         <Query query={ queries.TypeA_fieldA }>
           { () => (
             // Fixed id.
@@ -1045,6 +1048,129 @@ describe('Fragment', () => {
       expect(childrens.nil.mock).toHaveProperty('calls.5.0.loading', false)
       expect(childrens.nil.mock).toHaveProperty('calls.5.0.error', undefined)
       expect(childrens.nil.mock).toHaveProperty('calls.5.0.queryData.typeResolver.field', 'new value')
+    })
+  })
+
+  describe('fetchPolicy', () => {
+    describe('cache-only', () => {
+      it('should not throw when not nested in a Query/Mutation component', () => {
+        console.error.suppress([
+          /The above error occurred in the/,
+          new RegExp(ERRORS.NO_PARENT_QUERY),
+          /The prop `queryContext` is marked as required/
+        ])
+
+        expect(() => mount((
+          <MockedProvider>
+            <Fragment fragment={ fragments.FieldA_on_TypeA } fetchPolicy='cache-only'>
+              { childrens.nil }
+            </Fragment>
+          </MockedProvider>
+        ))).not.toThrow()
+      })
+
+      it('should provide fragment data from store', async () => {
+        const typeDefs = `
+          type TypeA {
+            id: String
+            fieldA: String
+          }
+
+          type Query {
+            dumbField: String
+          }
+        `
+
+        const schema = makeExecutableSchema({ typeDefs })
+        // addMockFunctionsToSchema({ schema })
+
+        const data = {
+          'TypeA:1': {
+            id: '1',
+            fieldA: 'fieldA value',
+            __typename: 'TypeA'
+          }
+        }
+
+        const client = new ApolloClient({
+          ssr: true,
+          cache: new InMemoryCache().restore(data),
+          link: new SchemaLink({ schema })
+        })
+
+        await client.query({
+          query: gql`query { anotherTypeAResolver { id fieldA } }`,
+        })
+
+        mount(
+          <MockedProvider client={ client } removeTypename>
+            <Fragment fetchPolicy='cache-only' fragment={ fragments.FieldA_on_TypeA } id='TypeA:1'>
+              { childrens.nil }
+            </Fragment>
+          </MockedProvider>
+        )
+
+        expect(childrens.nil.mock).toHaveProperty('calls.0.0.loading', false)
+        expect(childrens.nil.mock).toHaveProperty('calls.0.0.data.fieldA', 'fieldA value')
+      })
+    })
+
+    describe('network-only', () => {
+      it('should NOT provide Fragment children with previously cached fragment data', async () => {
+        const typeDefs = `
+          type TypeA {
+            id: String
+            fieldA: String
+          }
+
+          type Query {
+            typeAResolver: TypeA
+            anotherTypeAResolver: TypeA
+          }
+        `
+
+        const resolvers = {
+          Query: {
+            typeAResolver: () => mocks.TypeA_fieldA[0].result.data.typeAResolver,
+            anotherTypeAResolver: () => mocks.TypeA_fieldA[0].result.data.typeAResolver,
+          }
+        }
+
+        const schema = makeExecutableSchema({ typeDefs, resolvers })
+        // addMockFunctionsToSchema({ schema })
+
+        const client = new ApolloClient({
+          ssr: true,
+          cache: new InMemoryCache(),
+          link: new SchemaLink({ schema })
+        })
+
+        await client.query({
+          query: gql`query { anotherTypeAResolver { id fieldA } }`,
+        })
+
+        const wrapper = mount(
+          <MockedProvider client={ client } removeTypename>
+            <Query query={ queries.TypeA_fieldA }>
+              { () => (
+                // Fixed id.
+                <Fragment fetchPolicy='network-only' fragment={ fragments.FieldA_on_TypeA } id='TypeA:1'>
+                  { childrens.nil }
+                </Fragment>
+              ) }
+            </Query>
+          </MockedProvider>
+        )
+
+        await sleep()
+        wrapper.update()
+
+        expect(childrens.nil.mock).toHaveProperty('calls.1.0.loading', true)
+        expect(childrens.nil.mock).not.toHaveProperty('calls.1.0.data.fieldA')
+
+        expect(childrens.nil.mock).toHaveProperty('calls.2.0.loading', false)
+        expect(childrens.nil.mock).toHaveProperty('calls.2.0.data.fieldA', 'fieldA value')
+      })
     })
   })
 })

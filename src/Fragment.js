@@ -2,6 +2,7 @@ import React, { PureComponent } from 'react'
 import PropTypes from 'prop-types'
 import { concatAST } from 'graphql'
 import { enableExperimentalFragmentVariables } from 'graphql-tag'
+import { ApolloConsumer } from 'react-apollo'
 import equals from 'shallowequal'
 
 import { QueryContext, QueryContextPropType } from './Query'
@@ -27,11 +28,22 @@ export const ERRORS = {
 
 class QueryFragment extends PureComponent {
   static propTypes = {
-    id: PropTypes.string, // Optional fragment cache id.
+    // Injected:
+    client: PropTypes.object,
+    queryContexts: PropTypes.arrayOf(QueryContextPropType).isRequired,
+
+    // Required:
     fragment: PropTypes.object.isRequired, // AST proptype?
     children: PropTypes.func.isRequired,
-    queryContexts: PropTypes.arrayOf(QueryContextPropType).isRequired,
+
+    // Optional:
+    id: PropTypes.string,
     variables: PropTypes.object,
+    fetchPolicy: PropTypes.string,
+  }
+
+  static defaultProps = {
+    fetchPolicy: 'cache-first'
   }
 
   constructor (...args) {
@@ -41,6 +53,7 @@ class QueryFragment extends PureComponent {
     this.argumentsNamesMap = {}
 
     this.fragment = this.props.fragment
+    this.fragmentName = getFragmentName(this.fragment)
 
     // Normalize fragment arguments definition.
     this.fragment = prefixFragmentArguments(this.fragment, this.argumentsNamesMap)
@@ -56,20 +69,20 @@ class QueryFragment extends PureComponent {
     this.missingFragmentsNames = [].concat(fragmentNames) // clone array.
 
     // Register fragment on the query when has no missing fragments.
-    if (!this.missingFragmentsNames.length) {
+    if (this.props.fetchPolicy !== 'cache-only' && !this.missingFragmentsNames.length) {
       this.getQueryContext().registerFragment(
         this.fragment,
         this.arguments,
       )
     }
 
-    if (this.props.variables) {
+    if (this.props.fetchPolicy !== 'cache-only' && this.props.variables) {
       this.hoistVariables(this.props.variables)
     }
   }
 
-  componentWillReceiveProps ({ variables }) {
-    if (!equals(this.props.variables, variables)) {
+  componentWillReceiveProps ({ variables, fetchPolicy }) {
+    if (fetchPolicy !== 'cache-only' && !equals(this.props.variables, variables)) {
       this.hoistVariables(variables)
     }
   }
@@ -136,26 +149,54 @@ class QueryFragment extends PureComponent {
         // Save child fragment's arguments.
         this.arguments = this.arguments.concat(args)
 
-        // When no more missing fragments, alter parent query.
+        // When no more missing fragments, save fragment change and update parent query.
         if (!this.missingFragmentsNames.length) {
           this.fragment = concatAST([this.fragment, ...this.fragments])
-          this.getQueryContext().registerFragment(
-            this.fragment,
-            this.arguments
-          )
+
+          if (this.props.fetchPolicy !== 'cache-only') {
+            this.getQueryContext().registerFragment(
+              this.fragment,
+              this.arguments
+            )
+          }
         }
       }
     }
   }
 
+  /**
+   * Get the result for a given fragment.
+   */
+  getFragmentData = () => {
+    const { fragment, fragmentName } = this
+    const { id } = this.props
+
+    // Fragment data can only be fetched when id is provided.
+    return (id && this.props.client.readFragment({ id, fragment, fragmentName })) || {}
+  }
+
   render () {
-    const { children, id, queryContexts } = this.props
+    const { children, queryContexts } = this.props
+
+    const defaultQueryContext = {
+      result: {
+        data: {},
+        error: undefined,
+        loading: false
+      }
+    }
 
     // Find this fragment's parent query context.
-    const queryContext = this.getQueryContext()
+    const queryContext = this.props.fetchPolicy !== 'cache-only'
+      ? this.getQueryContext()
+      : defaultQueryContext
+
+    const { result } = queryContext
 
     // Construct results relative to this fragment.
-    const result = queryContext.getFragmentResult({ id, fragment: this.fragment })
+    const data = this.props.fetchPolicy !== 'network-only' || !result.loading
+      ? this.getFragmentData()
+      : {}
 
     const fragmentContext = {
       ...queryContext,
@@ -166,7 +207,7 @@ class QueryFragment extends PureComponent {
 
     return (
       <QueryContext.Provider value={ queryContexts.concat(fragmentContext) }>
-        { children(result) }
+        { children({ ...result, queryData: result.data, data }) }
       </QueryContext.Provider>
     )
   }
@@ -178,7 +219,11 @@ class QueryFragment extends PureComponent {
 export const Fragment = props => (
   <QueryContext.Consumer>
     { queryContexts => (
-      <QueryFragment { ...props } queryContexts={ queryContexts } />
+      <ApolloConsumer>
+        { client => (
+          <QueryFragment { ...props } client={ client } queryContexts={ queryContexts } />
+        ) }
+      </ApolloConsumer>
     ) }
   </QueryContext.Consumer>
 )
