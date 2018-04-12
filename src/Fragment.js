@@ -24,6 +24,7 @@ if (enableExperimentalFragmentVariables) {
 export const ERRORS = {
   NO_PARENT_QUERY: new Error('Fragment component must belong to a parent Query or Mutation component'),
   NO_FRAGMENT_PROP: new Error('Fragment component must be given a fragment prop'),
+  NO_ID_PROP: new Error('Fragment component must be given an ID prop when using cache-only fetch policy'),
 }
 
 class QueryFragment extends PureComponent {
@@ -61,6 +62,7 @@ class QueryFragment extends PureComponent {
 
     // Ensure minimal props.
     if (!this.fragment) throw ERRORS.NO_FRAGMENT_PROP
+    if (this.props.fetchPolicy === 'cache-only' && !this.props.id) throw ERRORS.NO_ID_PROP
 
     const fragmentNames = getRequestedFragmentNames(this.fragment).filter(unique)
 

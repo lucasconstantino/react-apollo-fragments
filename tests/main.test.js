@@ -1062,11 +1062,27 @@ describe('Fragment', () => {
 
         expect(() => mount((
           <MockedProvider>
-            <Fragment fragment={ fragments.FieldA_on_TypeA } fetchPolicy='cache-only'>
+            <Fragment id='TypeA:1' fragment={ fragments.FieldA_on_TypeA } fetchPolicy='cache-only'>
               { childrens.nil }
             </Fragment>
           </MockedProvider>
         ))).not.toThrow()
+      })
+
+      it('should throw using cache-only without providing an id', () => {
+        console.error.suppress([
+          /The above error occurred in the/,
+          new RegExp(ERRORS.NO_ID_PROP),
+          /The prop `queryContext` is marked as required/
+        ])
+
+        expect(() => mount((
+          <MockedProvider>
+            <Fragment fragment={ fragments.FieldA_on_TypeA } fetchPolicy='cache-only'>
+              { childrens.nil }
+            </Fragment>
+          </MockedProvider>
+        ))).toThrow(ERRORS.NO_ID_PROP)
       })
 
       it('should provide fragment data from store', async () => {
@@ -1096,10 +1112,6 @@ describe('Fragment', () => {
           ssr: true,
           cache: new InMemoryCache().restore(data),
           link: new SchemaLink({ schema })
-        })
-
-        await client.query({
-          query: gql`query { anotherTypeAResolver { id fieldA } }`,
         })
 
         mount(

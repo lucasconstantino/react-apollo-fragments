@@ -16,7 +16,20 @@ export const QueryContext = createContext([])
 
 // Define a query context contract.
 export const QueryContextPropType = PropTypes.shape({
+  // Mandatory QueryContext API.
+  contains: PropTypes.func.isRequired,
   registerFragment: PropTypes.func.isRequired,
+  receiveVariables: PropTypes.func.isRequired,
+
+  // Mandatory QueryContext data.
+  result: PropTypes.shape({
+    loading: PropTypes.bool.isRequired,
+    error: PropTypes.error,
+  }).isRequired,
+
+  // Optional QueryContext info.
+  query: PropTypes.object,
+  fragment: PropTypes.object,
 })
 
 export class Query extends PureComponent {
