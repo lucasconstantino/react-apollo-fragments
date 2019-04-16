@@ -2,7 +2,7 @@
 
 True Fragment component for react-apollo
 
-[![Build status](https://travis-ci.org/lucasconstantino/react-apollo-fragments.svg?branch=master)](https://travis-ci.org/lucasconstantino/react-apollo-fragments)
+[![Build status](https://travis-ci.org/lucasconstantino/react-apollo-fragments.svg?branch=master)](https://travis-ci.org/lucasconstantino/react-apollo-fragments) [![Greenkeeper badge](https://badges.greenkeeper.io/lucasconstantino/react-apollo-fragments.svg)](https://greenkeeper.io/)
 
 > :warning: **This package is not ready for production, and some functionality depends on a [pull-request to graphql-tag](https://github.com/apollographql/graphql-tag/pull/167#issuecomment-379306245)**
 
