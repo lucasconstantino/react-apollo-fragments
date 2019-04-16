@@ -1,0 +1,21 @@
+{
+  "groups": {
+    "default": {
+      "packages": [
+        "local_modules/enzyme/packages/enzyme-adapter-react-13/package.json",
+        "local_modules/enzyme/packages/enzyme-adapter-react-14/package.json",
+        "local_modules/enzyme/packages/enzyme-adapter-react-15.4/package.json",
+        "local_modules/enzyme/packages/enzyme-adapter-react-15/package.json",
+        "local_modules/enzyme/packages/enzyme-adapter-react-16/package.json",
+        "local_modules/enzyme/packages/enzyme-adapter-react-helper/package.json",
+        "local_modules/enzyme/packages/enzyme-adapter-utils/package.json",
+        "local_modules/enzyme/packages/enzyme-example-mocha/package.json",
+        "local_modules/enzyme/packages/enzyme-test-suite/package.json",
+        "local_modules/enzyme/packages/enzyme/package.json",
+        "local_modules/graphql-tag/package.json",
+        "local_modules/react-apollo/package.json",
+        "package.json"
+      ]
+    }
+  }
+}
